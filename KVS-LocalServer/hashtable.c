@@ -60,7 +60,7 @@ void table_insert(HashTable* table, char* key, void* value)
         itemPos = &(*itemPos)->next;
     }
 
-    table->array[index] = malloc(sizeof(TableItem));
+    *itemPos = malloc(sizeof(TableItem));
 
     (*itemPos)->key = key;
     (*itemPos)->value = value;
@@ -75,7 +75,7 @@ void* table_get(HashTable* table, char* key)
     
     while(itemPos != NULL)
     {
-        if(strcmp(itemPos->key, key) == NULL)
+        if(strcmp(itemPos->key, key) == 0)
         {
             return itemPos->value;
         }
@@ -83,6 +83,7 @@ void* table_get(HashTable* table, char* key)
         itemPos = itemPos->next;
     }
 
+    //If no value for this key was found, return NULL
     return NULL;
 }
 

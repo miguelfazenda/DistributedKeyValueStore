@@ -3,17 +3,17 @@
 
 #define TABLE_SIZE 20
 
-typedef struct HashTable_struct
-{
-    struct TableItem* array[TABLE_SIZE];
-} HashTable;
-
 typedef struct TableItem_struct
 {
     char* key;
     void* value;
-    struct TableItem* next;
+    struct TableItem_struct* next;
 } TableItem;
+
+typedef struct HashTable_struct
+{
+    TableItem* array[TABLE_SIZE];
+} HashTable;
 
 HashTable table_create();
 void table_insert(HashTable* table, char* key, void* value);
