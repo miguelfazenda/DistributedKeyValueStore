@@ -89,5 +89,5 @@ void* table_get(HashTable* table, char* key)
 
 void table_delete(HashTable* table, char* key)
 {
-
+    //TODO implementar esta gaita
 }
