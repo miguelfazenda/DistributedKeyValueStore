@@ -1,12 +1,16 @@
 #include "message.h"
+#include <string.h>
+#include <sys/socket.h>
+#include <sys/types.h>
+#include <stdlib.h>
 
 Message receive_message(int sockFD)
 {
     Message msg;
 
     //Receives the message header, that contains the ID and size of the arguments
-    char buf1[5];
-    recv(sockFD, buf1, 5);
+    unsigned char buf1[5];
+    recv(sockFD, buf1, 5, 0);
 
     msg.messageID = buf1[0];
 
@@ -18,18 +22,23 @@ Message receive_message(int sockFD)
     msg.secondArg = (char*) malloc(secondArgSize * sizeof(char));
 
     //Receives the arguments
-    recv(sockFD, msg.firstArg, firstArgSize * sizeof(char));
-    recv(sockFD, msg.secondArg, secondArgSize * sizeof(char));
+    recv(sockFD, msg.firstArg, firstArgSize * sizeof(char), 0);
+    recv(sockFD, msg.secondArg, secondArgSize * sizeof(char), 0);
+
+    return msg;
 }
 
 void send_message(int sockFD, Message msg)
 {
     char buf1[5]; // porque é que o buf tem tamanho 5?
     buf1[0] = msg.messageID;
-    buf1[1] = strlen(msg.firstArg)+1;
-    buf1[3] = strlen(msg.secondArg)+1; //porque é que este buf é na posição 3?
+    size_t firstArgSize = strlen(msg.firstArg)+1;
+    size_t secondArgSize = strlen(msg.secondArg)+1;
 
-    send(sockFD, buf1, 5);
-    send(sockFD, msg.firstArg, buf1[1]*sizeof(char));
-    send(sockFD, msg.secondArg, buf1[3]*sizeof(char));
+    buf1[1] = firstArgSize;
+    buf1[3] = secondArgSize; //porque é que este buf é na posição 3?
+
+    send(sockFD, buf1, 5, 0);
+    send(sockFD, msg.firstArg, firstArgSize*sizeof(char), 0);
+    send(sockFD, msg.secondArg, secondArgSize*sizeof(char), 0);
 }

@@ -2,5 +2,5 @@
 
 int main()
 {
-    establish_connection("", "");
+    establish_connection((char*)"", (char*)"");
 }

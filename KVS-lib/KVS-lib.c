@@ -12,7 +12,8 @@
 
 int establish_connection (char * group_id, char * secret)
 {
-    int recv_sock; 
+    int recv_sock;
+    struct sockaddr_un recv_sock_addr;
 
     char SOCKET_ADDR[100];
     sprintf(SOCKET_ADDR, "/tmp/client_sock_%d", getpid());
@@ -49,8 +50,13 @@ int establish_connection (char * group_id, char * secret)
     msg.firstArg = group_id;
     msg.secondArg = secret;
 
-    sendMessage(recv_sock, msg);
+    send_message(recv_sock, msg);
+    
+    char buf[100];
+    recv(recv_sock, buf, 100, 0);
 
-    //Send group_id and secret to server
-    send(recv_sock, &numero, sizeof(int), 0);
+    printf("buf: %s", buf);
+
+    
+    return 0;
 }

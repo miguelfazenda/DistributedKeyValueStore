@@ -30,6 +30,8 @@ send(buffer, sizeof(buffer));
 
 buffer[0] = message->tipoDeMensagem;*/
 
+void create_server();
+
 int main()
 {
     HashTable table = table_create();
@@ -46,6 +48,8 @@ int main()
     //DEvia dar um apontador para NULL, pq removemos o ab
     printf("ab -> pointer: %p\n", table_get(&table, "ab"));
     printf("ab -> pointer: %p\n", table_get(&table, "bbbb"));
+
+    create_server();
 
     /*MessageHeader header;
     recv(header, sizeof(MessageHeader))
@@ -66,11 +70,11 @@ void* thread_client_routine(void* in)
     int socketFD = client->sockFD;
 
     char* str = "teste";
-    send(socketFD, str, sizeof(str), 0);
+    send(socketFD, str, (strlen(str)+1) * sizeof(char), 0);
 
     while(1)
     {
-        recv();
+        //recv();
     }
 
     close(socketFD);
