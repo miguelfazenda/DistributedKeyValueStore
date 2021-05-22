@@ -1,4 +1,4 @@
-#include "hashtable.h"
+#include "../shared/hashtable.h"
 #include <stdio.h>
 #include <sys/socket.h>
 #include <sys/un.h>
@@ -7,61 +7,37 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <errno.h>
+#include <stdbool.h>
 #include "../shared/message.h"
+#include "client_list.h"
+#include "message_handling.h"
+#include "globals.h"
 
 #define SERVER_ADDRESS "/tmp/server"
 
-
-
-
-typedef struct Client_struct
-{
-    int sockFD;
-    pthread_t thread;
-
-    struct Client_struct* next;
-} Client;
-Client* connected_clients_list = NULL;
-
-/*void* buffer = convert_message_to_buffer(message);
-
-send(buffer, sizeof(buffer));
-
-
-buffer[0] = message->tipoDeMensagem;*/
-
 void create_server();
+void remove_and_free_client_from_list(Client* client);
 
 int main()
 {
-    HashTable table = table_create();
-    table_insert(&table, "miguel", "fixe");
-    table_insert(&table, "ab", "ola1");
-    table_insert(&table, "ba", "ola2");
+    groups_table = table_create(free_value_hashtable);
+    /*table_insert(&groups_table, "miguel", "fixe");
+    table_insert(&groups_table, "ab", "ola1");
+    table_insert(&groups_table, "ba", "ola2");
 
-    printf("miguel -> %s\n", (char *)table_get(&table, "miguel"));
-    printf("ab -> %s\n", (char *)table_get(&table, "ab"));
-    printf("ba -> %s\n", (char *)table_get(&table, "ba"));
+    printf("miguel -> %s\n", (char *)table_get(&groups_table, "miguel"));
+    printf("ab -> %s\n", (char *)table_get(&groups_table, "ab"));
+    printf("ba -> %s\n", (char *)table_get(&groups_table, "ba"));
 
-    table_delete(&table, (void *)"ab");
+    table_delete(&groups_table, (void *)"ab");
 
     //DEvia dar um apontador para NULL, pq removemos o ab
-    printf("ab -> pointer: %p\n", table_get(&table, "ab"));
-    printf("ab -> pointer: %p\n", table_get(&table, "bbbb"));
+    printf("ab -> pointer: %p\n", table_get(&groups_table, "ab"));
+    printf("ab -> pointer: %p\n", table_get(&groups_table, "bbbb"));*/
 
     create_server();
 
-    /*MessageHeader header;
-    recv(header, sizeof(MessageHeader))
-
-    char* key;
-    recv(key, tamanhoDoPrimeiroArg * sizeof(char))
-
-    if()
-    {
-        char* value;
-        recv(key, tamanhoDoPrimeiroArg * sizeof(char))
-    }*/
+    return 0;
 }
 
 void* thread_client_routine(void* in)
@@ -69,15 +45,68 @@ void* thread_client_routine(void* in)
     Client* client = (Client*) in;
     int socketFD = client->sockFD;
 
-    char* str = "teste";
-    send(socketFD, str, (strlen(str)+1) * sizeof(char), 0);
-
-    while(1)
+    while(client->stay_connected)
     {
-        //recv();
+        Message msg;
+        msg.firstArg = NULL;
+        msg.secondArg = NULL;
+
+        if(receive_message(socketFD, &msg) == 1)
+        {
+            printf("Received msg %d, %s, %s\n", msg.messageID, msg.firstArg, msg.secondArg);
+
+            if(msg.messageID == MSG_PUT)
+            {
+                if(msg_received_put(client, &msg) == -1)
+                {
+                    // Error, disconnect client
+                    printf("Error receiving message from client. Disconnecting client\n");
+                    client->stay_connected = 0;
+                }
+            }
+            else if(msg.messageID == MSG_LOGIN)
+            {
+                if(msg_received_login(client, &msg) == -1)
+                {
+                    // Error, disconnect client
+                    printf("Error receiving message from client. Disconnecting client\n");
+                    client->stay_connected = 0;
+                }
+            }
+
+            /*if(msg.messageID < 0 || msg.messageID > MAX_HANDLING_FUNCTION_ID || message_handling_functions[msg.messageID] == NULL)
+            {
+                printf("Cant find message handling function for msg id: %d", msg.messageID);
+            }
+            else
+            {
+                //Call the function to handle the message
+                int ret = message_handling_functions[msg.messageID](client, &msg);
+                if(ret == -1)
+                {
+                    // Error, disconnect client
+                    printf("Error receiving message from client. Disconnecting client\n");
+                    client->stay_connected = 0;
+                }
+            }*/
+
+        }
+        else
+        {
+            // Error, disconnect client
+            printf("Error receiving message from client. Disconnecting client\n");
+            client->stay_connected = 0;
+        }
+
+        //Free the message
+        free_message(&msg);
     }
 
+    //Client disconnected, close socket and remove it from clients list
     close(socketFD);
+    client_list_remove_and_free(&connected_clients, client);
+
+    return(NULL);
 }
 
 void client_connected(int clientFD)
@@ -86,22 +115,10 @@ void client_connected(int clientFD)
     Client* client = (Client*)malloc(sizeof(Client));
     client->next = NULL;
     client->sockFD = clientFD;
+    client->group_id = NULL;
+    client->stay_connected = true;
 
-    if(connected_clients_list == NULL)
-    {
-        //The list was empty
-        connected_clients_list = client;
-    }
-    else
-    {
-        //Adds the client to the end of the list
-        Client* aux = connected_clients_list;
-
-        while(aux != NULL && aux->next != NULL)
-            aux = aux->next;
-
-        aux->next = client;
-    }
+    client_list_add(&connected_clients, client);
 
     //Starts the client thread, and saves the thread handler in client->thread
     pthread_create(&client->thread, NULL, thread_client_routine, (void*)client);

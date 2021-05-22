@@ -27,7 +27,7 @@ int table_hash_function(char* key)
  * 
  * @return HashTable The table
  */
-HashTable table_create()
+HashTable table_create(void (*free_value_func)(void*))
 {
     HashTable table;
     
@@ -35,6 +35,8 @@ HashTable table_create()
     {
         table.array[i] = NULL;
     }
+    
+    table.free_value_func = free_value_func;
     
     return table;
 }
@@ -62,7 +64,10 @@ void table_insert(HashTable* table, char* key, void* value)
 
     *itemPos = malloc(sizeof(TableItem));
 
-    (*itemPos)->key = key;
+    //Allocate and copy the key, because the original key string may be free-ed later
+    (*itemPos)->key = (char*)malloc((strlen(key)+1)*sizeof(char));
+    strcpy((*itemPos)->key, key);
+
     (*itemPos)->value = value;
     (*itemPos)->next = NULL;
 }
@@ -89,5 +94,46 @@ void* table_get(HashTable* table, char* key)
 
 void table_delete(HashTable* table, char* key)
 {
-    //TODO implementar esta gaita
+    int index = table_hash_function(key);
+
+    //Finds the pointer to the pointer where the first item is stored
+    TableItem** itemPos = &table->array[index];
+    
+    //If itemPos doen't point to NULL, advance in the list
+    while(*itemPos != NULL)
+    {
+        if(strcmp((*itemPos)->key, key))
+        {
+            //Found the correct list entry, delete it
+            free((*itemPos)->key);
+            table->free_value_func((*itemPos)->value);
+            free(*itemPos);
+
+
+            *itemPos = (*itemPos)->next;
+            break;
+        }
+
+        itemPos = &(*itemPos)->next;
+    }
+}
+
+/**
+ * @brief Frees the table (doesnt free the table*)
+ * 
+ * @param table 
+ */
+void table_free(HashTable* table)
+{
+    printf("UNIMPLEMENTED! THIS SHOULD FREE ALL OF THE TABLE'S CONTENTS\n");
+}
+
+void free_value_str(void* ptr)
+{
+    free(ptr);
+}
+
+void free_value_hashtable(void* ptr)
+{
+    table_free((HashTable*) ptr);
 }

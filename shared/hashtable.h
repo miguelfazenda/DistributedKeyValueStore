@@ -13,11 +13,18 @@ typedef struct TableItem_struct
 typedef struct HashTable_struct
 {
     TableItem* array[TABLE_SIZE];
+
+    //The function used to free the values, when table_delete is called
+    void (*free_value_func)(void*);
 } HashTable;
 
-HashTable table_create();
+HashTable table_create(void (*free_value_func)(void*));
 void table_insert(HashTable* table, char* key, void* value);
 void* table_get(HashTable* table, char* key);
 void table_delete(HashTable* table, char* key);
+void table_free(HashTable* table);
+
+void free_value_str(void*);
+void free_value_hashtable(void*);
 
 #endif
