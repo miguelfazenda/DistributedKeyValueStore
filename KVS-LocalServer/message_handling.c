@@ -55,12 +55,27 @@ int msg_received_login(Client* client, Message* msg)
     
     return(1);
 }
-
+/*Message is received, this function assigns the value to the key and sends feedback on the execution to the application*/
 int msg_received_put(Client* client, Message* msg)
 {
-    HashTable* table;
+    HashTable* table_for_group;
 
-    table_for_group = table_get(&groups_table, client->group_id);
+    table_for_group = table_get(&groups_table, msg->firstArg);
+
+    if(table_for_group == NULL)
+    {
+        *table_for_group = table_create(free_value_str);
+        table_insert(table_for_group, msg->firstArg, msg->secondArg);
+    }
+    else
+    {
+        
+    }
+    
+
+
+    
+
 
 
 

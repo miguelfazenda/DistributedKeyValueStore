@@ -10,120 +10,68 @@
 #include "../shared/message.h"
 #include "../shared/hashtable.h"
 
-#define SERVER_ADDRESS "/tmp/server"
+#define AUTH_SERVER_ADDRESS "/tmp/auth_server"
+#define MSG_AUTH_CHECK_LOGIN 1
 
 HashTable groups_table;
+struct sockaddr_un sock_addr;
+int sock;
+
+#define RECV_BUF_SIZE 100
+#define SEND_BUF_SIZE 100
 
 void create_server();
 
 int main()
 {
     groups_table = table_create(free_value_hashtable);
-    /*table_insert(&groups_table, "miguel", "fixe");
-    table_insert(&groups_table, "ab", "ola1");
-    table_insert(&groups_table, "ba", "ola2");
-
-    printf("miguel -> %s\n", (char *)table_get(&groups_table, "miguel"));
-    printf("ab -> %s\n", (char *)table_get(&groups_table, "ab"));
-    printf("ba -> %s\n", (char *)table_get(&groups_table, "ba"));
-
-    table_delete(&groups_table, (void *)"ab");
-
-    //DEvia dar um apontador para NULL, pq removemos o ab
-    printf("ab -> pointer: %p\n", table_get(&groups_table, "ab"));
-    printf("ab -> pointer: %p\n", table_get(&groups_table, "bbbb"));*/
 
     create_server();
+
+    struct sockaddr_un sender_sock_addr;
+    char recv_buf[RECV_BUF_SIZE];
+    int n_bytes;
+
+    memset(&sender_sock_addr, 0, sizeof(struct sockaddr_un));
+    while(1) {
+        socklen_t sender_sock_addr_size = sizeof(struct sockaddr_un);
+        n_bytes = recvfrom(sock, &recv_buf, RECV_BUF_SIZE, 0,
+                        (struct sockaddr*)&sender_sock_addr, &sender_sock_addr_size);
+
+        __uint8_t messageId = (__uint8_t) recv_buf[0];
+
+        if(messageId == MSG_AUTH_CHECK_LOGIN)
+        {
+            printf("Check login status\n");
+
+            char send_buf[SEND_BUF_SIZE];
+
+            sendto(sock, &send_buf, SEND_BUF_SIZE, 0, (struct sockaddr*)&sender_sock_addr, sender_sock_addr_size);
+        }
+        
+
+
+        //sendto(sock, &primo, sizeof(int), 0, (struct sockaddr*)&sender_sock_addr, sender_sock_addr_size);
+    }
 
     return 0;
 }
 
-/**
- * @brief 
- * 
- * @param clientFD 
- * @return int Error code, or 1 for success
- */
-int handle_client(int clientFD)
-{
-    Message msg;
-    if(receive_message(clientFD, &msg) == -1)
-        return -1;
-
-    if(msg.messageID == MSG_LOGIN)
-    {
-        char* group_id = msg.firstArg;
-        char* secret = msg.secondArg;
-
-        //TODO Verificar se o secret está correto
-
-        bool correct_login = (strcmp(secret, "segredo") == 0);
-
-        Message msg2;
-        msg2.messageID = MSG_OKAY;
-        msg2.firstArg = NULL;
-        msg2.secondArg = NULL;
-    }
-
-    free_message(&msg);
-
-    return 1;
-}
 
 void create_server()
 {
-    int listen_sock;
-    struct sockaddr_un listen_sock_addr;
+    remove(AUTH_SERVER_ADDRESS);
 
-    //Removes the previous socket file
-    remove(SERVER_ADDRESS);
-
-    //Creates the socket
-    listen_sock = socket(AF_UNIX, SOCK_STREAM, 0);
-    if (listen_sock == -1)
-    {
+    sock = socket(AF_UNIX, SOCK_DGRAM, 0);
+    if (sock == -1){
         exit(-1);
     }
     printf("socket created\n");
+    sock_addr.sun_family = AF_UNIX;
+    strcpy(sock_addr.sun_path, AUTH_SERVER_ADDRESS);
 
-    //Sets the socket address
-    listen_sock_addr.sun_family = AF_UNIX;
-    strcpy(listen_sock_addr.sun_path, SERVER_ADDRESS);
-
-    //Binds the socket to the listen address
-    if (bind(listen_sock, (struct sockaddr *)&listen_sock_addr, sizeof(listen_sock_addr)) == -1)
-    {
+    if(bind(sock, (struct sockaddr*)&sock_addr, sizeof(sock_addr)) == -1){
         exit(-1);
     }
-    printf("Socket binded with an address %s\n", SERVER_ADDRESS);
-
-    //Listen on that socket for incoming connections
-    if (listen(listen_sock, 5) == -1)
-    {
-        printf("Error listening\n");
-        printf("Error: %s\n", strerror(errno));
-        exit(-1);
-    }
-
-    while (1)
-    {
-        //Waits and accepts client connections
-        int clientFD = accept(listen_sock, NULL, NULL);
-
-
-        if (clientFD < 0)
-        {
-            printf("Erro accepting client\n");
-            printf("Error: %s\n", strerror(errno));
-            exit(-1);
-        }
-        else
-        {
-            printf("A client has connected\n");
-
-            handle_client(clientFD);
-            //close the connection
-            close(clientFD);
-        }
-    }
+    printf("socket with an address %s\n", AUTH_SERVER_ADDRESS);
 }

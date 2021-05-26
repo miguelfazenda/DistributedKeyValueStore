@@ -48,8 +48,8 @@ int establish_connection (const char * group_id, const char * secret)
 
     //Send the login message with group id and secret
     msg.messageID = MSG_LOGIN;
-    msg.firstArg = group_id;
-    msg.secondArg = secret;
+    msg.firstArg = (char*) group_id;
+    msg.secondArg = (char*) secret;
     if(send_message(sock, msg) == -1)
     {
         return(-1); // to do: erros

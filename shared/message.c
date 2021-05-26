@@ -76,6 +76,11 @@ int send_message(int sockFD, Message msg)
     return 1;
 }
 
+void auth_send_message()
+{
+    
+}
+
 /**
  * @brief Frees the message. Only frees what is inside the struct, not the *msg itself!
  * 

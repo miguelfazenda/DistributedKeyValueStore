@@ -14,8 +14,15 @@
 #include "globals.h"
 
 #define SERVER_ADDRESS "/tmp/server"
+#define AUTH_CLIENT_ADDRESS "/tmp/server_auth_client"
+#define AUTH_SERVER_ADDRESS "/tmp/auth_server"
+
+int auth_sock;
+struct sockaddr_un auth_sock_addr;
+struct sockaddr_un auth_server_address;
 
 void create_server();
+void create_auth_client_socket();
 void remove_and_free_client_from_list(Client* client);
 
 int main()
@@ -34,6 +41,12 @@ int main()
     //DEvia dar um apontador para NULL, pq removemos o ab
     printf("ab -> pointer: %p\n", table_get(&groups_table, "ab"));
     printf("ab -> pointer: %p\n", table_get(&groups_table, "bbbb"));*/
+
+/*    create_auth_client_socket();
+
+    char buf[100];
+    buf[0] = 1;
+    sendto(auth_sock, buf, 100, 0, &auth_server_address, sizeof(auth_server_address));*/
 
     create_server();
 
@@ -178,4 +191,27 @@ void create_server()
             client_connected(clientFD);
         }
     }
+}
+
+void create_auth_client_socket()
+{
+    //Removes the previous socket file
+    remove(AUTH_CLIENT_ADDRESS);
+
+    auth_sock = socket(AF_UNIX, SOCK_DGRAM, 0);
+    if (auth_sock == -1){
+        exit(-1);
+    }
+    printf("socket created\n");
+    auth_sock_addr.sun_family = AF_UNIX;
+    strcpy(auth_sock_addr.sun_path, AUTH_CLIENT_ADDRESS);
+
+    if(bind(auth_sock, (struct sockaddr*)&auth_sock_addr, sizeof(auth_sock_addr)) == -1){
+        exit(-1);
+    }
+    printf("socket with an address %s\n", AUTH_CLIENT_ADDRESS);
+
+    //Stores the server address in a struct
+    auth_server_address.sun_family = AF_UNIX;
+    strcpy(auth_server_address.sun_path, AUTH_SERVER_ADDRESS);
 }
