@@ -58,18 +58,15 @@ int msg_received_login(Client* client, Message* msg)
 /*Message is received, this function assigns the value to the key and sends feedback on the execution to the application*/
 int msg_received_put(Client* client, Message* msg)
 {
-    void* value;
+    HashTable* group;
+    char* value; 
 
-    value = table_get(&groups_table, msg->firstArg);
+    //Finds the group table 
+    group = table_get(&groups_table, client->group_id);
+    value = table_get(group, )
 
-    if(value == NULL)
-    {
-        table_insert(groups_table, msg->firstArg, msg->secondArg);
-    }
-    else
-    {
-        *value = *msg->secondArg;
-    }
+
+
 
     //Create and send message to client
     Message msg2;

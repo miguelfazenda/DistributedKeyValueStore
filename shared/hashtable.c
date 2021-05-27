@@ -49,6 +49,7 @@ HashTable table_create(void (*free_value_func)(void*))
  * @param key 
  * @param value 
  */
+// Inserts a value for a specific key
 void table_insert(HashTable* table, char* key, void* value)
 {
     int index = table_hash_function(key);
@@ -56,6 +57,16 @@ void table_insert(HashTable* table, char* key, void* value)
     //Finds the pointer to the pointer where the first item is stored
     TableItem** itemPos = &table->array[index];
     
+    while(*itemPos != NULL)
+    {
+        if(strcmp(itemPos->key, key) == 0)
+        {
+            return itemPos->value;
+        }
+        
+        itemPos = itemPos->next;
+    }
+
     //If itemPos doen't point to NULL, advance in the list
     while(*itemPos != NULL)
     {
@@ -72,7 +83,7 @@ void table_insert(HashTable* table, char* key, void* value)
     (*itemPos)->next = NULL;
 }
 
-// Finds the value for a specific key. If found, return pointer for value. If not found, return NULL
+// Finds the value/group for a specific key/id. If found, return pointer for value. If not found, return NULL
 void* table_get(HashTable* table, char* key)
 {
     int index = table_hash_function(key);
