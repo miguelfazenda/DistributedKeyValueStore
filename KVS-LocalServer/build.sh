@@ -1,1 +1,1 @@
-gcc main.c client_list.c message_handling.c ../shared/message.c ../shared/hashtable.c -lpthread -Wall -Wextra -pedantic -g
+gcc main.c client_list.c message_handling.c auth.c ../shared/message.c ../shared/hashtable.c -lpthread -Wall -Wextra -pedantic -g

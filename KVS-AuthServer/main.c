@@ -7,46 +7,55 @@
 #include <unistd.h>
 #include <errno.h>
 #include <stdbool.h>
+#include <stdint.h>
 #include "../shared/message.h"
 #include "../shared/hashtable.h"
 
-#define AUTH_SERVER_ADDRESS "/tmp/auth_server"
-#define MSG_AUTH_CHECK_LOGIN 1
+#include "../shared/auth_defines.h"
 
-HashTable groups_table;
+#define AUTH_SERVER_ADDRESS "/tmp/auth_server"
+
+HashTable secrets_table;
 struct sockaddr_un sock_addr;
 int sock;
 
-#define RECV_BUF_SIZE 100
+#define RECV_BUF_SIZE 101
 #define SEND_BUF_SIZE 100
 
-void create_server();
+void create_server(void);
+void handle_message_login(char recv_buf[RECV_BUF_SIZE], struct sockaddr_un sender_sock_addr, socklen_t sender_sock_addr_size);
+void handle_message_create_group(char recv_buf[RECV_BUF_SIZE], struct sockaddr_un sender_sock_addr, socklen_t sender_sock_addr_size);
 
-int main()
+int main(void)
 {
-    groups_table = table_create(free_value_hashtable);
+    //A table that stores the GroupID-Secret
+    secrets_table = table_create(free_value_str);
+    table_insert(&secrets_table, (char*)"Grupo", (char*)"Secret");
 
+    //Creates the server socket (stored in global variable "sock")
     create_server();
+    
+    char recv_buf[RECV_BUF_SIZE];
+    //ssize_t n_bytes;
 
     struct sockaddr_un sender_sock_addr;
-    char recv_buf[RECV_BUF_SIZE];
-    int n_bytes;
+    socklen_t sender_sock_addr_size;
 
     memset(&sender_sock_addr, 0, sizeof(struct sockaddr_un));
     while(1) {
-        socklen_t sender_sock_addr_size = sizeof(struct sockaddr_un);
-        n_bytes = recvfrom(sock, &recv_buf, RECV_BUF_SIZE, 0,
+        sender_sock_addr_size = sizeof(struct sockaddr_un);
+        /*n_bytes = */recvfrom(sock, &recv_buf, RECV_BUF_SIZE, 0,
                         (struct sockaddr*)&sender_sock_addr, &sender_sock_addr_size);
 
-        __uint8_t messageId = (__uint8_t) recv_buf[0];
+        uint8_t messageId = (uint8_t) recv_buf[0];
 
         if(messageId == MSG_AUTH_CHECK_LOGIN)
         {
-            printf("Check login status\n");
-
-            char send_buf[SEND_BUF_SIZE];
-
-            sendto(sock, &send_buf, SEND_BUF_SIZE, 0, (struct sockaddr*)&sender_sock_addr, sender_sock_addr_size);
+            handle_message_login(recv_buf, sender_sock_addr, sender_sock_addr_size);
+        }
+        else if(messageId == MSG_AUTH_CREATE_GROUP)
+        {
+            handle_message_create_group(recv_buf, sender_sock_addr, sender_sock_addr_size);
         }
         
 
@@ -57,8 +66,10 @@ int main()
     return 0;
 }
 
-
-void create_server()
+/**
+ * @brief Create the socket for the server
+ */
+void create_server(void)
 {
     remove(AUTH_SERVER_ADDRESS);
 
@@ -74,4 +85,77 @@ void create_server()
         exit(-1);
     }
     printf("socket with an address %s\n", AUTH_SERVER_ADDRESS);
+}
+
+/**
+ * @brief Checks if the secret is correct and sends back a response, 0 for incorrect, 1 for correct
+ * 
+ * @param recv_buf 
+ */
+void handle_message_login(char recv_buf[RECV_BUF_SIZE], struct sockaddr_un sender_sock_addr, socklen_t sender_sock_addr_size)
+{
+    printf("Check login status\n");
+
+    char group_id[50];
+    char sent_secret[50];
+
+    //Copy string from buffer to local variables (\0 added to prevent a bad string crashing the server)
+    memcpy(group_id, &recv_buf[1], 50);
+    group_id[49] = '\0';
+    memcpy(sent_secret, &recv_buf[51], 50);
+    sent_secret[49] = '\0';
+
+    printf("groupdID: %s\n", group_id);
+    printf("secret: %s\n", sent_secret);
+
+    int8_t loginResponse = -1;
+
+    //Get the stored secret from the table
+    char* stored_secret = (char*) table_get(&secrets_table, group_id);
+
+    if(stored_secret == NULL)
+    {
+        //The table doesn't have a secret for such group
+        loginResponse = AUTH_ERROR_GROUP_NOT_PRESENT;
+        printf("Secret for groupID %s not present\n", group_id);
+    }
+    else
+    {
+        //There is a stored secret for this group, send 0 or 1 if the secrets match
+        loginResponse = strcmp(stored_secret, sent_secret) == 0;
+        printf("Secret for groupID %s %s\n", group_id, loginResponse == 1 ? "Correct" : "Incorrect");
+    }
+    
+    //Send the response
+    sendto(sock, &loginResponse, sizeof(uint8_t), 0, (struct sockaddr*)&sender_sock_addr, sender_sock_addr_size);
+}
+
+/**
+ * @brief Creates a group-secret entry in the table
+ * 
+ * @param recv_buf 
+ */
+void handle_message_create_group(char recv_buf[RECV_BUF_SIZE], struct sockaddr_un sender_sock_addr, socklen_t sender_sock_addr_size)
+{
+    printf("Create group (Store secret)\n");
+
+    char group_id[50];
+    char sent_secret[50];
+
+    //Copy string from buffer to local variables (\0 added to prevent a bad string crashing the server)
+    memcpy(group_id, &recv_buf[1], 50);
+    group_id[49] = '\0';
+    memcpy(sent_secret, &recv_buf[51], 50);
+    sent_secret[49] = '\0';
+
+    printf("groupdID: %s\n", group_id);
+    printf("secret: %s\n", sent_secret);
+
+    //Removes the entry for that group if it already exists, and stores the new groupid-secret pair
+    table_delete(&secrets_table, group_id);
+    table_insert(&secrets_table, group_id, strdup(sent_secret));
+
+    //Send response
+    uint8_t response = 1;
+    sendto(sock, &response, sizeof(uint8_t), 0, (struct sockaddr*)&sender_sock_addr, sender_sock_addr_size);
 }

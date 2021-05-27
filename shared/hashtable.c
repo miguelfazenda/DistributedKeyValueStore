@@ -5,6 +5,8 @@
 
 #include "hashtable.h"
 
+int table_hash_function(char* key);
+
 /**
  * @brief Generates a hash of a string. It's the sum of all characters
  * 
@@ -95,6 +97,7 @@ void* table_get(HashTable* table, char* key)
 
 void table_delete(HashTable* table, char* key)
 {
+    //TODO avisar se não encontrar?
     int index = table_hash_function(key);
 
     //Finds the pointer to the pointer where the first item is stored

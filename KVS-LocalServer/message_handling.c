@@ -1,7 +1,9 @@
 #include "message_handling.h"
-#include "globals.h"
 #include <stdlib.h>
 #include <string.h>
+
+#include "globals.h"
+#include "auth.h"
 
  /*message_handling_functions = {
         NULL,
@@ -25,22 +27,43 @@ int msg_received_login(Client* client, Message* msg)
     //Save the group ID in the client struct
     client->group_id = group_id;
 
-    // Check if table exists
-    HashTable* table_for_group = (HashTable*) table_get(&groups_table, client->group_id);
+    //Check secret with AuthServer
+    int8_t login_response = auth_send_login(client->group_id, msg->secondArg);
 
-    //If table does not exist, create one
-    if(table_for_group == NULL)
+    if(login_response < 0)
     {
-        table_for_group = (HashTable*) malloc(sizeof(HashTable));
-        *table_for_group = table_create(free_value_str);
-        table_insert(&groups_table, group_id, table_for_group);
+        printf("Error login message to auth server\n");
+    }
+    
+    bool login_success = (login_response == 1);
 
-        printf("Created a new table for group %s\n", group_id);
+    if(login_success)
+    {
+        // Check if table exists
+        HashTable* table_for_group = (HashTable*) table_get(&groups_table, client->group_id);
+
+        //If table does not exist, create one
+        if(table_for_group == NULL)
+        {
+            table_for_group = (HashTable*) malloc(sizeof(HashTable));
+            *table_for_group = table_create(free_value_str);
+            table_insert(&groups_table, group_id, table_for_group);
+
+            printf("Created a new table for group %s\n", group_id);
+        }
+    }
+    
+    int8_t response_message_id = MSG_OKAY;
+
+    if(!login_success)
+    {
+        //Failed login: wrong secret (login_response == 0) or generic error
+        response_message_id = (login_response == 0) ? ERROR_WRONG_SECRET : ERROR_FAILED_AUTHENTICATION;
     }
 
     //Create and send message to client
     Message msg2;
-    msg2.messageID = MSG_OKAY;
+    msg2.messageID = response_message_id;
     msg2.firstArg = NULL;
     msg2.secondArg = NULL;
     if(send_message(client->sockFD, msg2) == -1)
@@ -60,15 +83,16 @@ int msg_received_put(Client* client, Message* msg)
 {
     void* value;
 
+    //T'a maaallll. É para fazer table_get com o client->groupId, e daí temos a hashtable 
     value = table_get(&groups_table, msg->firstArg);
 
     if(value == NULL)
     {
-        table_insert(groups_table, msg->firstArg, msg->secondArg);
+        table_insert(&groups_table, msg->firstArg, msg->secondArg);
     }
     else
     {
-        *value = *msg->secondArg;
+        value = (void*) msg->secondArg;
     }
 
     //Create and send message to client
