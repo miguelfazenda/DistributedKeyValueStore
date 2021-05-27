@@ -72,6 +72,7 @@ void table_insert(HashTable* table, char* key, void* value)
     (*itemPos)->next = NULL;
 }
 
+// Finds the value for a specific key. If found, return pointer for value. If not found, return NULL
 void* table_get(HashTable* table, char* key)
 {
     int index = table_hash_function(key);

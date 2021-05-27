@@ -58,26 +58,30 @@ int msg_received_login(Client* client, Message* msg)
 /*Message is received, this function assigns the value to the key and sends feedback on the execution to the application*/
 int msg_received_put(Client* client, Message* msg)
 {
-    HashTable* table_for_group;
+    void* value;
 
-    table_for_group = table_get(&groups_table, msg->firstArg);
+    value = table_get(&groups_table, msg->firstArg);
 
-    if(table_for_group == NULL)
+    if(value == NULL)
     {
-        *table_for_group = table_create(free_value_str);
-        table_insert(table_for_group, msg->firstArg, msg->secondArg);
+        table_insert(groups_table, msg->firstArg, msg->secondArg);
     }
     else
     {
-        
+        *value = *msg->secondArg;
     }
-    
 
+    //Create and send message to client
+    Message msg2;
+    msg2.messageID = MSG_OKAY;
+    msg2.firstArg = NULL;
+    msg2.secondArg = NULL;
+    if(send_message(client->sockFD, msg2) == -1)
+    {
+        return(-1);
+    }
 
-    
+    // TO DO: ERROS -> return negative
 
-
-
-
-    return 1;
+    return(1); //success
 }
