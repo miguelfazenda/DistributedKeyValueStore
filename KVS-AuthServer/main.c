@@ -23,8 +23,8 @@ int sock;
 #define SEND_BUF_SIZE 100
 
 void create_server(void);
-void handle_message_login(char recv_buf[RECV_BUF_SIZE], struct sockaddr_un sender_sock_addr, socklen_t sender_sock_addr_size);
-void handle_message_create_group(char recv_buf[RECV_BUF_SIZE], struct sockaddr_un sender_sock_addr, socklen_t sender_sock_addr_size);
+void handle_message_login(AuthMessage* msg, struct sockaddr_un sender_sock_addr, socklen_t sender_sock_addr_size);
+void handle_message_create_group(AuthMessage* msg, struct sockaddr_un sender_sock_addr, socklen_t sender_sock_addr_size);
 
 int main(void)
 {
@@ -35,7 +35,7 @@ int main(void)
     //Creates the server socket (stored in global variable "sock")
     create_server();
     
-    char recv_buf[RECV_BUF_SIZE];
+    char recv_buf[AUTH_MSG_BUFFER_SIZE];
     //ssize_t n_bytes;
 
     struct sockaddr_un sender_sock_addr;
@@ -44,18 +44,19 @@ int main(void)
     memset(&sender_sock_addr, 0, sizeof(struct sockaddr_un));
     while(1) {
         sender_sock_addr_size = sizeof(struct sockaddr_un);
-        /*n_bytes = */recvfrom(sock, &recv_buf, RECV_BUF_SIZE, 0,
+        /*n_bytes = */recvfrom(sock, &recv_buf, AUTH_MSG_BUFFER_SIZE, 0,
                         (struct sockaddr*)&sender_sock_addr, &sender_sock_addr_size);
 
-        uint8_t messageId = (uint8_t) recv_buf[0];
+        AuthMessage msg;
+        deserialize_auth_message(&msg, recv_buf);
 
-        if(messageId == MSG_AUTH_CHECK_LOGIN)
+        if(msg.messageID == MSG_AUTH_CHECK_LOGIN)
         {
-            handle_message_login(recv_buf, sender_sock_addr, sender_sock_addr_size);
+            handle_message_login(&msg, sender_sock_addr, sender_sock_addr_size);
         }
-        else if(messageId == MSG_AUTH_CREATE_GROUP)
+        else if(msg.messageID == MSG_AUTH_CREATE_GROUP)
         {
-            handle_message_create_group(recv_buf, sender_sock_addr, sender_sock_addr_size);
+            handle_message_create_group(&msg, sender_sock_addr, sender_sock_addr_size);
         }
         
 
@@ -92,18 +93,23 @@ void create_server(void)
  * 
  * @param recv_buf 
  */
-void handle_message_login(char recv_buf[RECV_BUF_SIZE], struct sockaddr_un sender_sock_addr, socklen_t sender_sock_addr_size)
+void handle_message_login(AuthMessage* msg, struct sockaddr_un sender_sock_addr, socklen_t sender_sock_addr_size)
 {
     printf("Check login status\n");
 
-    char group_id[50];
+    char* group_id = msg->firstArg;
+    char* sent_secret = msg->secondArg;
+    
+    /*char group_id[50];
     char sent_secret[50];
 
     //Copy string from buffer to local variables (\0 added to prevent a bad string crashing the server)
     memcpy(group_id, &recv_buf[1], 50);
     group_id[49] = '\0';
     memcpy(sent_secret, &recv_buf[51], 50);
-    sent_secret[49] = '\0';
+    sent_secret[49] = '\0';*/
+
+
 
     printf("groupdID: %s\n", group_id);
     printf("secret: %s\n", sent_secret);
@@ -135,18 +141,12 @@ void handle_message_login(char recv_buf[RECV_BUF_SIZE], struct sockaddr_un sende
  * 
  * @param recv_buf 
  */
-void handle_message_create_group(char recv_buf[RECV_BUF_SIZE], struct sockaddr_un sender_sock_addr, socklen_t sender_sock_addr_size)
+void handle_message_create_group(AuthMessage* msg, struct sockaddr_un sender_sock_addr, socklen_t sender_sock_addr_size)
 {
     printf("Create group (Store secret)\n");
 
-    char group_id[50];
-    char sent_secret[50];
-
-    //Copy string from buffer to local variables (\0 added to prevent a bad string crashing the server)
-    memcpy(group_id, &recv_buf[1], 50);
-    group_id[49] = '\0';
-    memcpy(sent_secret, &recv_buf[51], 50);
-    sent_secret[49] = '\0';
+    char* group_id = msg->firstArg;
+    char* sent_secret = msg->secondArg;
 
     printf("groupdID: %s\n", group_id);
     printf("secret: %s\n", sent_secret);

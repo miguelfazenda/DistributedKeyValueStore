@@ -15,6 +15,8 @@
 #define ERROR_WRONG_SECRET -2
 #define ERROR_FAILED_AUTHENTICATION -3
 
+#define AUTH_MSG_BUFFER_SIZE 201
+
 
 /*typedef struct MessageHeader_struct
 {
@@ -29,6 +31,17 @@ typedef struct Message_struct
     char* firstArg;
     char* secondArg;
 } Message;
+
+typedef struct AuthMessage_struct
+{
+    int8_t messageID;
+    char firstArg[100];
+    char secondArg[100];
+} AuthMessage;
+
+void serialize_auth_message(AuthMessage* message, char* buffer);
+void deserialize_auth_message(AuthMessage* message, char* buffer);
+AuthMessage create_auth_message(const int8_t message_id, const char* first_arg, const char* second_arg);
 
 int receive_message(int sockFD, Message* msg);
 int send_message(int sockFD, Message msg);

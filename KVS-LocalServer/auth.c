@@ -11,6 +11,7 @@
 #include <sys/socket.h>
 
 #include "../shared/auth_defines.h"
+#include "../shared/message.h"
 
 int auth_create_socket()
 {
@@ -39,30 +40,14 @@ int auth_create_socket()
 
 int8_t auth_send_login(const char* group_id, const char* group_secret)
 {
-    char buf[101];
-    buf[0] = MSG_AUTH_CHECK_LOGIN;
+    char buf[AUTH_MSG_BUFFER_SIZE];
 
-    //Get the size of the strings (with \0), and warn if they are too big
-    size_t size_group_id = strlen(group_id)+1;
-    if(size_group_id > 49)
-    {
-        printf("GroupID value too long\n");
-        return -1;
-    }
-    
-    size_t size_group_secret = strlen(group_secret)+1;
-    if(size_group_secret > 49)
-    {
-        printf("Group secret value too long\n");
-        return -1;
-    }
-
-    // Copy the strings to the buffer positions 1-50, and 51-100
-    memcpy(&buf[1], group_id, size_group_id);
-    memcpy(&buf[51], group_secret, size_group_secret);
+    //Convert the message to the buffer
+    AuthMessage msg = create_auth_message(MSG_AUTH_CREATE_GROUP, group_id, group_secret);
+    serialize_auth_message(&msg, buf);
 
     // Send the message
-    sendto(auth_sock, buf, 101, 0, (const struct sockaddr *)&auth_server_address, sizeof(auth_server_address));
+    sendto(auth_sock, buf, AUTH_MSG_BUFFER_SIZE, 0, (const struct sockaddr *)&auth_server_address, sizeof(auth_server_address));
 
     //Receive response from auth server
     __int8_t response;
@@ -73,30 +58,14 @@ int8_t auth_send_login(const char* group_id, const char* group_secret)
 
 int8_t auth_create_group(const char* group_id, const char* group_secret)
 {
-    char buf[101];
-    buf[0] = MSG_AUTH_CREATE_GROUP;
+    char buf[AUTH_MSG_BUFFER_SIZE];
 
-    //Get the size of the strings (with \0), and warn if they are too big
-    size_t size_group_id = strlen(group_id)+1;
-    if(size_group_id > 49)
-    {
-        printf("GroupID value too long\n");
-        return -1;
-    }
-    
-    size_t size_group_secret = strlen(group_secret)+1;
-    if(size_group_secret > 49)
-    {
-        printf("Group secret value too long\n");
-        return -1;
-    }
-
-    // Copy the strings to the buffer positions 1-50, and 51-100
-    memcpy(&buf[1], group_id, size_group_id);
-    memcpy(&buf[51], group_secret, size_group_secret);
+    //Convert the message to the buffer
+    AuthMessage msg = create_auth_message(MSG_AUTH_CREATE_GROUP, group_id, group_secret);
+    serialize_auth_message(&msg, buf);
 
     // Send the message
-    sendto(auth_sock, buf, 101, 0, (const struct sockaddr *)&auth_server_address, sizeof(auth_server_address));
+    sendto(auth_sock, buf, AUTH_MSG_BUFFER_SIZE, 0, (const struct sockaddr *)&auth_server_address, sizeof(auth_server_address));
 
     //Receive response from auth server
     __int8_t response;
