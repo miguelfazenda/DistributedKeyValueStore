@@ -57,8 +57,8 @@ int msg_received_login(Client* client, Message* msg)
 
     if(!login_success)
     {
-        //Failed login: wrong secret (login_response == 0) or generic error
-        response_message_id = (login_response == 0) ? ERROR_WRONG_SECRET : ERROR_FAILED_AUTHENTICATION;
+        //Failed login: wrong secret (login_response == 0) or error contained in login_response(such as ERROR_AUTH_GROUP_NOT_PRESENT)
+        response_message_id = (login_response == 0) ? ERROR_WRONG_SECRET : login_response;
     }
 
     //Create and send message to client

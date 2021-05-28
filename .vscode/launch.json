@@ -4,6 +4,7 @@
     // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
+
         {
             "name": "Launch LocalServer",
             "type": "cppdbg",
@@ -43,10 +44,10 @@
             ]
         }, 
         {
-            "name": "Launch AuthServer",
+            "name": "Launch Application",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/KVS-AuthServer/a.out",
+            "program": "${workspaceFolder}/KVS-lib/a.out",
             "args": [],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",

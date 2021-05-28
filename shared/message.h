@@ -12,8 +12,7 @@
 #define MSG_CALLBACK 6
 #define MSG_OKAY 7
 
-#define ERROR_WRONG_SECRET -2
-#define ERROR_FAILED_AUTHENTICATION -3
+#include "error_codes.h"
 
 #define AUTH_MSG_BUFFER_SIZE 201
 

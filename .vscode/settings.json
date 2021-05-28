@@ -5,6 +5,7 @@
         "hashtable.h": "c",
         "auth_defines.h": "c",
         "types.h": "c",
-        "kvs-lib.h": "c"
+        "kvs-lib.h": "c",
+        "auth.h": "c"
     }
 }

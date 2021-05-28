@@ -30,7 +30,7 @@ int main(void)
 {
     //A table that stores the GroupID-Secret
     secrets_table = table_create(free_value_str);
-    table_insert(&secrets_table, "Grupo", (char*)"Secret");
+    //table_insert(&secrets_table, "Grupo", (char*)"Secret");
 
     //Creates the server socket (stored in global variable "sock")
     create_server();
@@ -122,7 +122,7 @@ void handle_message_login(AuthMessage* msg, struct sockaddr_un sender_sock_addr,
     if(stored_secret == NULL)
     {
         //The table doesn't have a secret for such group
-        loginResponse = AUTH_ERROR_GROUP_NOT_PRESENT;
+        loginResponse = ERROR_AUTH_GROUP_NOT_PRESENT;
         printf("Secret for groupID %s not present\n", group_id);
     }
     else
