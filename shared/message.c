@@ -15,14 +15,14 @@ int receive_message(int sockFD, Message* msg)
 {
     //Receives the message header, that contains the ID and size of the arguments
     unsigned char buf1[5];
-    size_t n_bytes = recv(sockFD, buf1, 5, 0);
+    ssize_t n_bytes = recv(sockFD, buf1, 5, 0);
     if(n_bytes <= 0)
         return -1;
 
-    msg->messageID = buf1[0];
+    msg->messageID = (int8_t)buf1[0];
 
-    __uint16_t firstArgSize = (__uint16_t)buf1[1];
-    __uint16_t secondArgSize = (__uint16_t)buf1[3];
+    uint16_t firstArgSize = (uint16_t)buf1[1];
+    uint16_t secondArgSize = (uint16_t)buf1[3];
 
 
     //Receives the arguments and Allocate the arguments according to their size
@@ -51,14 +51,15 @@ int send_message(int sockFD, Message msg)
 {
     char buffer_msg_header[5]; 
     buffer_msg_header[0] = msg.messageID;
-    __uint16_t firstArgSize = msg.firstArg == NULL ? 0 : (__uint16_t)strlen(msg.firstArg)+1;
-    __uint16_t secondArgSize = msg.secondArg == NULL ? 0 : (__uint16_t)strlen(msg.secondArg)+1;
+    uint16_t firstArgSize = msg.firstArg == NULL ? 0 : (uint16_t)(strlen(msg.firstArg)+1);
+    uint16_t secondArgSize = msg.secondArg == NULL ? 0 : (uint16_t)(strlen(msg.secondArg)+1);
 
-    *(__uint16_t*)(buffer_msg_header + 1) = firstArgSize;
-    *(__uint16_t*)(buffer_msg_header + 3) = secondArgSize;
+    //Copies the arg sizes to the buffer
+    memcpy(buffer_msg_header + 1, &firstArgSize, sizeof(uint16_t));
+    memcpy(buffer_msg_header + 3, &secondArgSize, sizeof(uint16_t));
 
     //Send the message header
-    size_t n_bytes = send(sockFD, buffer_msg_header, 5, 0);
+    ssize_t n_bytes = send(sockFD, buffer_msg_header, 5, 0);
     if(n_bytes <= 0)
         return -1;
     if(msg.firstArg != NULL)
@@ -74,11 +75,6 @@ int send_message(int sockFD, Message msg)
             return -1;
     }
     return 1;
-}
-
-void auth_send_message()
-{
-    
 }
 
 /**

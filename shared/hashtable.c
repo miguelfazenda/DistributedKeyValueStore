@@ -5,7 +5,7 @@
 
 #include "hashtable.h"
 
-int table_hash_function(char* key);
+int table_hash_function(const char* key);
 
 /**
  * @brief Generates a hash of a string. It's the sum of all characters
@@ -13,7 +13,7 @@ int table_hash_function(char* key);
  * @param key The String
  * @return int The hash value between 0 and TABLE_SIZE-1
  */
-int table_hash_function(char* key)
+int table_hash_function(const char* key)
 {
     int sum = 0;
     for(size_t i = 0; i < strlen(key); i++)
@@ -51,7 +51,7 @@ HashTable table_create(void (*free_value_func)(void*))
  * @param key 
  * @param value 
  */
-void table_insert(HashTable* table, char* key, void* value)
+void table_insert(HashTable* table, const char* key, void* value)
 {
     int index = table_hash_function(key);
 

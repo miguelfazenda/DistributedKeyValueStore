@@ -30,7 +30,7 @@ int main(void)
 {
     //A table that stores the GroupID-Secret
     secrets_table = table_create(free_value_str);
-    table_insert(&secrets_table, (char*)"Grupo", (char*)"Secret");
+    table_insert(&secrets_table, "Grupo", (char*)"Secret");
 
     //Creates the server socket (stored in global variable "sock")
     create_server();
