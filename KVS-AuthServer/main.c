@@ -36,16 +36,24 @@ int main(void)
     create_server();
     
     char recv_buf[AUTH_MSG_BUFFER_SIZE];
-    //ssize_t n_bytes;
 
     struct sockaddr_un sender_sock_addr;
     socklen_t sender_sock_addr_size;
 
+    int return_code = 0;
+
     memset(&sender_sock_addr, 0, sizeof(struct sockaddr_un));
     while(1) {
         sender_sock_addr_size = sizeof(struct sockaddr_un);
-        /*n_bytes = */recvfrom(sock, &recv_buf, AUTH_MSG_BUFFER_SIZE, 0,
+        ssize_t n_bytes = recvfrom(sock, &recv_buf, AUTH_MSG_BUFFER_SIZE, 0,
                         (struct sockaddr*)&sender_sock_addr, &sender_sock_addr_size);
+        
+        if(n_bytes < 1)
+        {
+            printf("An error ocurred receiving data\n");
+            return_code = -1;
+            break;
+        }
 
         AuthMessage msg;
         deserialize_auth_message(&msg, recv_buf);
@@ -64,7 +72,10 @@ int main(void)
         //sendto(sock, &primo, sizeof(int), 0, (struct sockaddr*)&sender_sock_addr, sender_sock_addr_size);
     }
 
-    return 0;
+    remove(AUTH_SERVER_ADDRESS);
+    close(sock);
+
+    return return_code;
 }
 
 /**
@@ -114,7 +125,7 @@ void handle_message_login(AuthMessage* msg, struct sockaddr_un sender_sock_addr,
     printf("groupdID: %s\n", group_id);
     printf("secret: %s\n", sent_secret);
 
-    int8_t loginResponse = -1;
+    int8_t login_response = -1;
 
     //Get the stored secret from the table
     char* stored_secret = (char*) table_get(&secrets_table, group_id);
@@ -122,18 +133,19 @@ void handle_message_login(AuthMessage* msg, struct sockaddr_un sender_sock_addr,
     if(stored_secret == NULL)
     {
         //The table doesn't have a secret for such group
-        loginResponse = ERROR_AUTH_GROUP_NOT_PRESENT;
+        login_response = ERROR_AUTH_GROUP_NOT_PRESENT;
         printf("Secret for groupID %s not present\n", group_id);
     }
     else
     {
         //There is a stored secret for this group, send 0 or 1 if the secrets match
-        loginResponse = strcmp(stored_secret, sent_secret) == 0;
-        printf("Secret for groupID %s %s\n", group_id, loginResponse == 1 ? "Correct" : "Incorrect");
+        login_response = strcmp(stored_secret, sent_secret) == 0;
+        printf("Secret for groupID %s %s\n", group_id, login_response == 1 ? "Correct" : "Incorrect");
     }
     
-    //Send the response
-    sendto(sock, &loginResponse, sizeof(uint8_t), 0, (struct sockaddr*)&sender_sock_addr, sender_sock_addr_size);
+    //Send the response (the messageID on the struct is used for sending the login_response code)
+    AuthMessage resp_msg = { .messageID = login_response, .firstArg = {'\0'}, .secondArg = {'\0'} };
+    send_auth_message(resp_msg, sock, sender_sock_addr);
 }
 
 /**
@@ -156,6 +168,7 @@ void handle_message_create_group(AuthMessage* msg, struct sockaddr_un sender_soc
     table_insert(&secrets_table, group_id, strdup(sent_secret));
 
     //Send response
-    uint8_t response = 1;
-    sendto(sock, &response, sizeof(uint8_t), 0, (struct sockaddr*)&sender_sock_addr, sender_sock_addr_size);
+    int8_t response = 1;
+    AuthMessage resp_msg = { .messageID = response, .firstArg = {'\0'}, .secondArg = {'\0'} };
+    send_auth_message(resp_msg, sock, sender_sock_addr);
 }

@@ -12,6 +12,9 @@
 
 #include "../shared/auth_defines.h"
 
+int send_auth_message_and_wait_response(AuthMessage send_msg, AuthMessage* response_msg);
+int receive_auth_response(AuthMessage* msg);
+
 int auth_create_socket()
 {
     //Removes the previous socket file
@@ -45,55 +48,84 @@ int auth_create_socket()
 
 int8_t auth_send_login(const char* group_id, const char* group_secret)
 {
-    //Send message
-    int send_status = send_auth_message(create_auth_message(MSG_AUTH_CHECK_LOGIN, group_id, group_secret));
-    if(send_status != 1)
-        return -1;
+    AuthMessage response_msg;
 
-    //Receive response from auth server
-    __int8_t response;
-    recvfrom(auth_sock, &response, sizeof(response), 0, (struct sockaddr*)&auth_server_address, sizeof(auth_server_address));
+    //Sends the MSG_AUTH_CHECK_LOGIN message, and receives the response from the auth server
+    int status = send_auth_message_and_wait_response(
+        create_auth_message(MSG_AUTH_CHECK_LOGIN, group_id, group_secret), &response_msg);
 
-    return response;
-}
+    if(status != 1)
+        return status;
 
-int8_t auth_create_group(const char* group_id, const char* group_secret)
-{
-    //Send message
-    int send_status = send_auth_message(create_auth_message(MSG_AUTH_CREATE_GROUP, group_id, group_secret));
-    if(send_status != 1)
-        return -1;
-
-    //Receive response from auth server
-    __int8_t response;
-    recvfrom(auth_sock, &response, sizeof(response), 0, (struct sockaddr*)&auth_server_address, sizeof(auth_server_address));
-
+    int8_t response = response_msg.messageID;
     return response;
 }
 
 /**
- * @brief Sends a message on the auth_sock to the auth_server_address (declared on globals.h),
- *          with the contents of the message (uses serialize_auth_message)
+ * @brief Sends to the auth server the request to create a group, and waits the reponse
  * 
- * @param msg 
- * @return int 1 means it was sent sucessfully, other values means an error ocurred
+ * @param group_id 
+ * @param group_secret 
+ * @return int8_t the return code, 1 means success
  */
-int send_auth_message(AuthMessage msg)
+int8_t auth_create_group(const char* group_id, const char* group_secret)
 {
-    char buf[AUTH_MSG_BUFFER_SIZE];
+    AuthMessage response_msg;
 
-    //Convert the message to the buffer
-    serialize_auth_message(&msg, buf);
+    //Sends the MSG_AUTH_CREATE_GROUP message, and receives the response from the auth server
+    int status = send_auth_message_and_wait_response(
+        create_auth_message(MSG_AUTH_CREATE_GROUP, group_id, group_secret), &response_msg);
 
-    // Send the message
-    if(sendto(auth_sock, buf, AUTH_MSG_BUFFER_SIZE, 0,  (struct sockaddr*)&auth_server_address, sizeof(auth_server_address))
-        != AUTH_MSG_BUFFER_SIZE)
+    if(status != 1)
+        return status;
+
+    int8_t response = response_msg.messageID;
+    return response;
+}
+
+int send_auth_message_and_wait_response(AuthMessage send_msg, AuthMessage* response_msg)
+{
+    //Stores whether the send and recv worked correctly
+    int status;
+
+    //Send message
+    status = send_auth_message(send_msg,
+        auth_sock, auth_server_address);
+    if(status != 1)
     {
-        //Didn't send correctly
         auth_sock_error_occured = true;
         return -1;
     }
 
-    //TODO return error
+    //Receive response from auth server
+    status = receive_auth_response(response_msg);
+    if(status != 1)
+    {
+        auth_sock_error_occured = true;
+        return -1;
+    }
+    
+    return 1;
+}
+
+/**
+ * @brief Receives a message from sock and puts it in msg
+ * 
+ * @param msg where the message will be stored
+ * @param sock the socket
+ */
+int receive_auth_response(AuthMessage* msg)
+{
+    char recv_buf[AUTH_MSG_BUFFER_SIZE];
+    ssize_t n_bytes = recvfrom(auth_sock, &recv_buf, AUTH_MSG_BUFFER_SIZE, 0,
+                        NULL, NULL);
+        
+    if(n_bytes < 1)
+    {
+        printf("An error ocurred receiving data\n");
+        return -1;
+    }
+    deserialize_auth_message(msg, recv_buf);
+
     return 1;
 }

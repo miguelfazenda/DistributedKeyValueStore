@@ -6,6 +6,7 @@
         "auth_defines.h": "c",
         "types.h": "c",
         "kvs-lib.h": "c",
-        "auth.h": "c"
+        "auth.h": "c",
+        "un.h": "c"
     }
 }

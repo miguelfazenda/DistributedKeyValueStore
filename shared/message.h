@@ -3,6 +3,7 @@
 
 #include <stdio.h>
 #include <stdint.h>
+#include <sys/un.h>
 
 #define MSG_LOGIN 1
 #define MSG_PUT 2
@@ -41,6 +42,7 @@ typedef struct AuthMessage_struct
 void serialize_auth_message(AuthMessage* message, char* buffer);
 void deserialize_auth_message(AuthMessage* message, char* buffer);
 AuthMessage create_auth_message(const int8_t message_id, const char* first_arg, const char* second_arg);
+int send_auth_message(AuthMessage msg, int sock, struct sockaddr_un server_address);
 
 int receive_message(int sockFD, Message* msg);
 int send_message(int sockFD, Message msg);

@@ -1,0 +1,2 @@
+AuthServer:
+    Mudar de Unix domain sockets para sockets IP

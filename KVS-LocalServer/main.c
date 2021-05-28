@@ -18,7 +18,7 @@
 
 #define SERVER_ADDRESS "/tmp/server"
 
-void* run_server(void* a)
+void* run_server(void* a);
 void create_auth_client_socket();
 void remove_and_free_client_from_list(Client* client);
 
@@ -45,7 +45,11 @@ int main(void)
     }
 
     //TODO - remove this, Cria o grupo para testar
-    auth_create_group("groupId", "Secret1");
+    int status_create_group = auth_create_group("groupId", "Secret1");
+    if(status_create_group == 1)
+        printf("Grupo criado com sucesso\n");
+    else
+        printf("Erro a criar grupo: %d\n", status_create_group);
 
 
     //Creates a thread to run the server accepting connections
@@ -147,7 +151,7 @@ void client_connected(int clientFD)
     pthread_create(&client->thread, NULL, thread_client_routine, (void*)client);
 }
 
-void* run_server(void* a)
+void* run_server(__attribute__((unused)) void* a)
 {
     int listen_sock;
     struct sockaddr_un listen_sock_addr;
@@ -204,5 +208,7 @@ void* run_server(void* a)
 
     close(listen_sock);
     listen_sock = 0;
+
+    return NULL;
 }
 

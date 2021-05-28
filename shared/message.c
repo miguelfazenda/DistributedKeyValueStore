@@ -98,21 +98,6 @@ void serialize_auth_message(AuthMessage* message, char* buffer)
     //Make sure they are null-terminated strings (even if it cuts the data)
     buffer[100] = '\0';
     buffer[200] = '\0';
-
-    /*//Get the size of the strings (with \0), and warn if they are too big
-    size_t size_group_id = strlen(group_id)+1;
-    if(size_group_id > 49)
-    {
-        printf("GroupID value too long\n");
-        return -1;
-    }
-    
-    size_t size_group_secret = strlen(group_secret)+1;
-    if(size_group_secret > 49)
-    {
-        printf("Group secret value too long\n");
-        return -1;
-    }*/
 }
 
 void deserialize_auth_message(AuthMessage* message, char* buffer)
@@ -137,4 +122,28 @@ AuthMessage create_auth_message(const int8_t message_id, const char* first_arg, 
     strncat(msg.secondArg, second_arg, sizeof(msg.secondArg)-1);
 
     return msg;
+}
+
+/**
+ * @brief Sends a message on the with the contents of the message (uses serialize_auth_message)
+ * 
+ * @param msg 
+ * @return int 1 means it was sent sucessfully, other values means an error ocurred
+ */
+int send_auth_message(AuthMessage msg, int sock, struct sockaddr_un server_address)
+{
+    char buf[AUTH_MSG_BUFFER_SIZE];
+
+    //Convert the message to the buffer
+    serialize_auth_message(&msg, buf);
+
+    // Send the message
+    if(sendto(sock, buf, AUTH_MSG_BUFFER_SIZE, 0, (struct sockaddr*)&server_address, sizeof(server_address))
+        != AUTH_MSG_BUFFER_SIZE)
+    {
+        //Didn't send correctly
+        return -1;
+    }
+
+    return 1;
 }
