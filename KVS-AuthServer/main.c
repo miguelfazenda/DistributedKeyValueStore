@@ -24,8 +24,9 @@ int sock;
 #define SEND_BUF_SIZE 100
 
 void create_server(void);
-void handle_message_login(AuthMessage* msg, struct sockaddr_in sender_sock_addr, socklen_t sender_sock_addr_size);
-void handle_message_create_group(AuthMessage* msg, struct sockaddr_in sender_sock_addr, socklen_t sender_sock_addr_size);
+void handle_message_login(AuthMessage* msg, struct sockaddr_in sender_sock_addr);
+void handle_message_create_group(AuthMessage* msg, struct sockaddr_in sender_sock_addr);
+void handle_message_get_secret(AuthMessage* msg, struct sockaddr_in sender_sock_addr);
 
 int main(void)
 {
@@ -56,21 +57,17 @@ int main(void)
             break;
         }
 
+        //Convert the received bytes to a AuthMessage struct
         AuthMessage msg;
         deserialize_auth_message(&msg, recv_buf);
 
+        //Run a function to handle the message with that messageID
         if(msg.messageID == MSG_AUTH_CHECK_LOGIN)
-        {
-            handle_message_login(&msg, sender_sock_addr, sender_sock_addr_size);
-        }
+            handle_message_login(&msg, sender_sock_addr);
         else if(msg.messageID == MSG_AUTH_CREATE_GROUP)
-        {
-            handle_message_create_group(&msg, sender_sock_addr, sender_sock_addr_size);
-        }
-        
-
-
-        //sendto(sock, &primo, sizeof(int), 0, (struct sockaddr*)&sender_sock_addr, sender_sock_addr_size);
+            handle_message_create_group(&msg, sender_sock_addr);
+        else if(msg.messageID == MSG_AUTH_GET_SECRET)
+            handle_message_get_secret(&msg, sender_sock_addr);
     }
 
     close(sock);
@@ -100,26 +97,13 @@ void create_server(void)
 
 /**
  * @brief Checks if the secret is correct and sends back a response, 0 for incorrect, 1 for correct
- * 
- * @param recv_buf 
  */
-void handle_message_login(AuthMessage* msg, struct sockaddr_in sender_sock_addr, socklen_t sender_sock_addr_size)
+void handle_message_login(AuthMessage* msg, struct sockaddr_in sender_sock_addr)
 {
     printf("Check login status\n");
 
     char* group_id = msg->firstArg;
     char* sent_secret = msg->secondArg;
-    
-    /*char group_id[50];
-    char sent_secret[50];
-
-    //Copy string from buffer to local variables (\0 added to prevent a bad string crashing the server)
-    memcpy(group_id, &recv_buf[1], 50);
-    group_id[49] = '\0';
-    memcpy(sent_secret, &recv_buf[51], 50);
-    sent_secret[49] = '\0';*/
-
-
 
     printf("groupdID: %s\n", group_id);
     printf("secret: %s\n", sent_secret);
@@ -149,10 +133,8 @@ void handle_message_login(AuthMessage* msg, struct sockaddr_in sender_sock_addr,
 
 /**
  * @brief Creates a group-secret entry in the table
- * 
- * @param recv_buf 
  */
-void handle_message_create_group(AuthMessage* msg, struct sockaddr_in sender_sock_addr, socklen_t sender_sock_addr_size)
+void handle_message_create_group(AuthMessage* msg, struct sockaddr_in sender_sock_addr)
 {
     printf("Create group (Store secret)\n");
 
@@ -169,5 +151,39 @@ void handle_message_create_group(AuthMessage* msg, struct sockaddr_in sender_soc
     //Send response
     int8_t response = 1;
     AuthMessage resp_msg = { .messageID = response, .firstArg = {'\0'}, .secondArg = {'\0'} };
+    send_auth_message(resp_msg, sock, sender_sock_addr);
+}
+
+/**
+ * @brief Replies the secret for a certain group. messageID is 1 for success, ERROR_AUTH_GROUP_NOT_PRESENT if that group isn't found.
+ *        The group_id is read on the firstArg, and the secret is sent on the secondArg
+ */
+void handle_message_get_secret(AuthMessage* msg, struct sockaddr_in sender_sock_addr)
+{
+    char* group_id = msg->firstArg;
+    printf("Get secret for group \"%s\"\n", group_id);
+
+    //Get the stored secret from the table
+    char* stored_secret = (char*) table_get(&secrets_table, group_id);
+
+    AuthMessage resp_msg = { .messageID = 0, .firstArg = {'\0'}, .secondArg = {'\0'} };
+
+    if(stored_secret == NULL)
+    {
+        //The table doesn't have a secret for such group
+        resp_msg.messageID = ERROR_AUTH_GROUP_NOT_PRESENT;
+        printf("Secret for groupID %s not present\n", group_id);
+    }
+    else
+    {
+        //There is a stored secret for this group, send 0 or 1 if the secrets match
+        resp_msg.messageID = 1;
+
+        //Copy the secret to the message struct
+        resp_msg.secondArg[0] = '\0';
+        strncat(resp_msg.secondArg, stored_secret, sizeof(resp_msg.secondArg)-1);
+    }
+    
+    //Send the response
     send_auth_message(resp_msg, sock, sender_sock_addr);
 }

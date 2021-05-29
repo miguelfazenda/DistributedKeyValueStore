@@ -51,6 +51,17 @@ int main(void)
     else
         printf("Erro a criar grupo: %d\n", status_create_group);
 
+    char group_secret[AUTH_MESSAGE_STRUCT_ARG_SIZE];
+    int status_get_secret = auth_get_secret("groupId", group_secret);
+    if(status_get_secret == 1)
+        printf("Segredo obtido: %s\n", group_secret);
+    else if(status_get_secret == ERROR_AUTH_GROUP_NOT_PRESENT)
+        printf("Erro grupo nao existente\n");
+    else
+        printf("Erro a obter segredo: %d\n", status_create_group);
+
+    
+
 
     //Creates a thread to run the server accepting connections
     pthread_t server_thread;

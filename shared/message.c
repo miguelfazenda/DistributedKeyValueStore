@@ -136,10 +136,16 @@ AuthMessage create_auth_message(const int8_t message_id, const char* first_arg, 
 
     //Copies the strings to the message structure.
     //strncat is used because it makes sure no more the the size of the string will be written
-    msg.firstArg[0] = '\0';
-    strncat(msg.firstArg, first_arg, sizeof(msg.firstArg)-1);
-    msg.secondArg[0] = '\0';
-    strncat(msg.secondArg, second_arg, sizeof(msg.secondArg)-1);
+    if(first_arg != NULL)
+    {
+        msg.firstArg[0] = '\0';
+        strncat(msg.firstArg, first_arg, sizeof(msg.firstArg)-1);
+    }
+    if(second_arg != NULL)
+    {
+        msg.secondArg[0] = '\0';
+        strncat(msg.secondArg, second_arg, sizeof(msg.secondArg)-1);
+    }
 
     return msg;
 }

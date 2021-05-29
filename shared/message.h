@@ -32,11 +32,12 @@ typedef struct Message_struct
     char* secondArg;
 } Message;
 
+#define AUTH_MESSAGE_STRUCT_ARG_SIZE 100
 typedef struct AuthMessage_struct
 {
     int8_t messageID;
-    char firstArg[100];
-    char secondArg[100];
+    char firstArg[AUTH_MESSAGE_STRUCT_ARG_SIZE];
+    char secondArg[AUTH_MESSAGE_STRUCT_ARG_SIZE];
 } AuthMessage;
 
 void serialize_auth_message(AuthMessage* message, char* buffer);

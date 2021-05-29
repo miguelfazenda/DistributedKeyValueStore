@@ -17,5 +17,6 @@ bool auth_sock_error_occured;
 int auth_create_socket(const char* host_name, uint16_t host_port);
 int8_t auth_send_login(const char* group_id, const char* group_secret);
 int8_t auth_create_group(const char* group_id, const char* group_secret);
+int8_t auth_get_secret(const char* group_id, char* group_secret);
 
 #endif
