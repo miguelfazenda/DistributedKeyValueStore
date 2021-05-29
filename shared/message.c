@@ -132,7 +132,7 @@ AuthMessage create_auth_message(const int8_t message_id, const char* first_arg, 
  * @param msg 
  * @return int 1 means it was sent sucessfully, other values means an error ocurred
  */
-int send_auth_message(AuthMessage msg, int sock, struct sockaddr_un server_address)
+int send_auth_message(AuthMessage msg, int sock, struct sockaddr_in server_address)
 {
     char buf[AUTH_MSG_BUFFER_SIZE];
 

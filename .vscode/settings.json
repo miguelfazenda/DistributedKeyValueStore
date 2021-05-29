@@ -7,6 +7,7 @@
         "types.h": "c",
         "kvs-lib.h": "c",
         "auth.h": "c",
-        "un.h": "c"
+        "un.h": "c",
+        "message.h": "c"
     }
 }

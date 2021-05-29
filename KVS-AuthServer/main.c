@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <sys/socket.h>
-#include <sys/un.h>
+#include <netinet/in.h>
 #include <sys/types.h>
 #include <pthread.h>
 #include <stdlib.h>
@@ -8,23 +8,24 @@
 #include <errno.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <string.h>
+
 #include "../shared/message.h"
 #include "../shared/hashtable.h"
-
 #include "../shared/auth_defines.h"
 
-#define AUTH_SERVER_ADDRESS "/tmp/auth_server"
+#define AUTH_SERVER_PORT 25565
 
 HashTable secrets_table;
-struct sockaddr_un sock_addr;
+struct sockaddr_in sock_address;
 int sock;
 
 #define RECV_BUF_SIZE 101
 #define SEND_BUF_SIZE 100
 
 void create_server(void);
-void handle_message_login(AuthMessage* msg, struct sockaddr_un sender_sock_addr, socklen_t sender_sock_addr_size);
-void handle_message_create_group(AuthMessage* msg, struct sockaddr_un sender_sock_addr, socklen_t sender_sock_addr_size);
+void handle_message_login(AuthMessage* msg, struct sockaddr_in sender_sock_addr, socklen_t sender_sock_addr_size);
+void handle_message_create_group(AuthMessage* msg, struct sockaddr_in sender_sock_addr, socklen_t sender_sock_addr_size);
 
 int main(void)
 {
@@ -37,14 +38,14 @@ int main(void)
     
     char recv_buf[AUTH_MSG_BUFFER_SIZE];
 
-    struct sockaddr_un sender_sock_addr;
+    struct sockaddr_in sender_sock_addr;
     socklen_t sender_sock_addr_size;
 
     int return_code = 0;
 
-    memset(&sender_sock_addr, 0, sizeof(struct sockaddr_un));
+    memset(&sender_sock_addr, 0, sizeof(struct sockaddr_in));
     while(1) {
-        sender_sock_addr_size = sizeof(struct sockaddr_un);
+        sender_sock_addr_size = sizeof(struct sockaddr_in);
         ssize_t n_bytes = recvfrom(sock, &recv_buf, AUTH_MSG_BUFFER_SIZE, 0,
                         (struct sockaddr*)&sender_sock_addr, &sender_sock_addr_size);
         
@@ -72,7 +73,6 @@ int main(void)
         //sendto(sock, &primo, sizeof(int), 0, (struct sockaddr*)&sender_sock_addr, sender_sock_addr_size);
     }
 
-    remove(AUTH_SERVER_ADDRESS);
     close(sock);
 
     return return_code;
@@ -83,20 +83,19 @@ int main(void)
  */
 void create_server(void)
 {
-    remove(AUTH_SERVER_ADDRESS);
-
-    sock = socket(AF_UNIX, SOCK_DGRAM, 0);
+    sock = socket(AF_INET, SOCK_DGRAM, 0);
     if (sock == -1){
         exit(-1);
     }
-    printf("socket created\n");
-    sock_addr.sun_family = AF_UNIX;
-    strcpy(sock_addr.sun_path, AUTH_SERVER_ADDRESS);
+    
+    sock_address.sin_family = AF_INET;
+    sock_address.sin_port = htons(AUTH_SERVER_PORT);
+    sock_address.sin_addr.s_addr = INADDR_ANY;
 
-    if(bind(sock, (struct sockaddr*)&sock_addr, sizeof(sock_addr)) == -1){
+    if(bind(sock, (const struct sockaddr*)&sock_address, sizeof(sock_address)) == -1){
         exit(-1);
     }
-    printf("socket with an address %s\n", AUTH_SERVER_ADDRESS);
+    printf("Server running in port %d\n", AUTH_SERVER_PORT);
 }
 
 /**
@@ -104,7 +103,7 @@ void create_server(void)
  * 
  * @param recv_buf 
  */
-void handle_message_login(AuthMessage* msg, struct sockaddr_un sender_sock_addr, socklen_t sender_sock_addr_size)
+void handle_message_login(AuthMessage* msg, struct sockaddr_in sender_sock_addr, socklen_t sender_sock_addr_size)
 {
     printf("Check login status\n");
 
@@ -153,7 +152,7 @@ void handle_message_login(AuthMessage* msg, struct sockaddr_un sender_sock_addr,
  * 
  * @param recv_buf 
  */
-void handle_message_create_group(AuthMessage* msg, struct sockaddr_un sender_sock_addr, socklen_t sender_sock_addr_size)
+void handle_message_create_group(AuthMessage* msg, struct sockaddr_in sender_sock_addr, socklen_t sender_sock_addr_size)
 {
     printf("Create group (Store secret)\n");
 

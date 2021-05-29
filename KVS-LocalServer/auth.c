@@ -9,6 +9,9 @@
 
 #include <stdio.h>
 #include <sys/socket.h>
+#include <arpa/inet.h>
+#include <netdb.h>
+#include <string.h>
 
 #include "../shared/auth_defines.h"
 
@@ -17,31 +20,44 @@ int receive_auth_response(AuthMessage* msg);
 
 int auth_create_socket()
 {
-    //Removes the previous socket file
-    remove(AUTH_CLIENT_ADDRESS);
-
-    auth_sock = socket(AF_UNIX, SOCK_DGRAM, 0);
+    auth_sock = socket(AF_INET, SOCK_DGRAM, 0);
     if (auth_sock == -1)
     {
         return -1;
         auth_sock_error_occured = true;
     }
-    printf("socket created\n");
-    auth_sock_addr.sun_family = AF_UNIX;
-    strcpy(auth_sock_addr.sun_path, AUTH_CLIENT_ADDRESS);
+
+    //Address of this client (receive on any ip and let system assign port)
+    auth_sock_addr.sin_family = AF_INET;
+    auth_sock_addr.sin_addr.s_addr = INADDR_ANY;
+    auth_sock_addr.sin_port = htons(0);
 
     if(bind(auth_sock, (struct sockaddr*)&auth_sock_addr, sizeof(auth_sock_addr)) == -1)
     {
         return -1;
         auth_sock_error_occured = true;
     }
-    printf("socket with an address %s\n", AUTH_CLIENT_ADDRESS);
 
-    //Stores the server address in a struct
-    auth_server_address.sun_family = AF_UNIX;
-    strcpy(auth_server_address.sun_path, AUTH_SERVER_ADDRESS);
+    //Address of the server
+    auth_server_address.sin_family = AF_INET;
+    auth_server_address.sin_port = htons(AUTH_SERVER_PORT);
+    inet_aton(AUTH_SERVER_IP, &auth_server_address.sin_addr);
+
+    struct hostent *hp;
+    const char* host_name = "127.0.0.1";
+    hp = gethostbyname(host_name);
+    if (hp == (struct hostent *) 0)
+    {
+        fprintf(stderr, "%s: unknown host\n", host_name);
+        return -1;
+    }
+    memcpy((char *) &auth_server_address.sin_addr, (char *) hp->h_addr,
+        hp->h_length);
 
     auth_sock_error_occured = false;
+
+
+    printf("Socket for auth comm open\n");
 
     return 1;
 }
