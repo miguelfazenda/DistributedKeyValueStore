@@ -17,7 +17,7 @@ int receive_message(int sockFD, Message* msg)
     unsigned char buf1[5];
     ssize_t n_bytes = recv(sockFD, buf1, 5, 0);
     if(n_bytes <= 0)
-        return -1;
+        return n_bytes;
 
     msg->messageID = (int8_t)buf1[0];
 
@@ -33,7 +33,7 @@ int receive_message(int sockFD, Message* msg)
         n_bytes = recv(sockFD, (void*) msg->firstArg, firstArgSize * sizeof(char), 0);
         msg->firstArg[firstArgSize-1] = '\0';
         if(n_bytes <= 0)
-            return -1;
+            return n_bytes;
     }
 
     msg->secondArg = NULL;
@@ -43,7 +43,7 @@ int receive_message(int sockFD, Message* msg)
         n_bytes = recv(sockFD, (void*) msg->secondArg, secondArgSize * sizeof(char), 0);
         msg->secondArg[secondArgSize-1] = '\0';
         if(n_bytes <= 0)
-            return -1;
+            return n_bytes;
     }
 
     return 1;
@@ -63,18 +63,18 @@ int send_message(int sockFD, Message msg)
     //Send the message header
     ssize_t n_bytes = send(sockFD, buffer_msg_header, 5, 0);
     if(n_bytes <= 0)
-        return -1;
+        return n_bytes;
     if(msg.firstArg != NULL)
     {
         n_bytes = send(sockFD, msg.firstArg, firstArgSize*sizeof(char), 0);
         if(n_bytes <= 0)
-            return -1;
+            return n_bytes;
     }
     if(msg.secondArg != NULL)
     {
         n_bytes = send(sockFD, msg.secondArg, secondArgSize*sizeof(char), 0);
         if(n_bytes <= 0)
-            return -1;
+            return n_bytes;
     }
     return 1;
 }
@@ -164,11 +164,11 @@ int send_auth_message(AuthMessage msg, int sock, struct sockaddr_in server_addre
     serialize_auth_message(&msg, buf);
 
     // Send the message
-    if(sendto(sock, buf, AUTH_MSG_BUFFER_SIZE, 0, (struct sockaddr*)&server_address, sizeof(server_address))
-        != AUTH_MSG_BUFFER_SIZE)
+    ssize_t send_status = sendto(sock, buf, AUTH_MSG_BUFFER_SIZE, 0, (struct sockaddr*)&server_address, sizeof(server_address));
+    if(send_status != AUTH_MSG_BUFFER_SIZE)
     {
-        //Didn't send correctly
-        return -1;
+        //Didn't send correctly, send the send_status, except if 0>send_status>AUTH_MSG_BUFFER_SIZE, then send -1
+        return send_status > 0 ? -1 : send_status;
     }
 
     return 1;
