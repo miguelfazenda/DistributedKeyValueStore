@@ -90,6 +90,13 @@ void free_message(Message* msg)
     free(msg->secondArg);
 }
 
+/**
+ * @brief  Write the data in the message to a buffer
+ * @note   
+ * @param  message: Read message
+ * @param  buffer: The buffer that will be written to
+ * @retval None
+ */
 void serialize_auth_message(AuthMessage* message, char* buffer)
 {
     buffer[0] = (char)message->messageID;
@@ -102,6 +109,13 @@ void serialize_auth_message(AuthMessage* message, char* buffer)
     buffer[200] = '\0';
 }
 
+/**
+ * @brief  Reads the data in a buffer and converts it into a message
+ * @note   
+ * @param  message: Where the message will be written
+ * @param  buffer: Read buffer
+ * @retval None
+ */
 void deserialize_auth_message(AuthMessage* message, char* buffer)
 {
     message->messageID = (int8_t)buffer[0];
@@ -112,6 +126,10 @@ void deserialize_auth_message(AuthMessage* message, char* buffer)
     message->secondArg[200] = '\0';
 }
 
+/**
+ * @brief  Creates an AuthMessage struct, and copies the args strings to the struct
+ * @retval the new AuthMessage struct instance
+ */
 AuthMessage create_auth_message(const int8_t message_id, const char* first_arg, const char* second_arg)
 {
     AuthMessage msg = { .messageID = message_id };

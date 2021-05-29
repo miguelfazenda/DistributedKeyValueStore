@@ -18,7 +18,12 @@
 int send_auth_message_and_wait_response(AuthMessage send_msg, AuthMessage* response_msg);
 int receive_auth_response(AuthMessage* msg);
 
-int auth_create_socket()
+/**
+ * @brief  Creates socket to communicate with the AuthServer
+ * @note   Side-effects: changes auth_sock, and sets a few variables
+ * @retval 1 for success, -1 for error
+ */
+int auth_create_socket(const char* host_name, uint16_t host_port)
 {
     auth_sock = socket(AF_INET, SOCK_DGRAM, 0);
     if (auth_sock == -1)
@@ -40,11 +45,9 @@ int auth_create_socket()
 
     //Address of the server
     auth_server_address.sin_family = AF_INET;
-    auth_server_address.sin_port = htons(AUTH_SERVER_PORT);
-    inet_aton(AUTH_SERVER_IP, &auth_server_address.sin_addr);
-
+    auth_server_address.sin_port = htons(host_port);
+    //Get the host address to the server, given a host name (IPv4, or domain name, etc.)
     struct hostent *hp;
-    const char* host_name = "127.0.0.1";
     hp = gethostbyname(host_name);
     if (hp == (struct hostent *) 0)
     {
@@ -62,6 +65,13 @@ int auth_create_socket()
     return 1;
 }
 
+/**
+ * @brief  Sends a login request to the AuthServer, and waits for the response
+ * @note   
+ * @param  group_id: 
+ * @param  group_secret: 
+ * @retval 1 for login correct, 0 incorrect, negative is an error
+ */
 int8_t auth_send_login(const char* group_id, const char* group_secret)
 {
     AuthMessage response_msg;
@@ -78,11 +88,8 @@ int8_t auth_send_login(const char* group_id, const char* group_secret)
 }
 
 /**
- * @brief Sends to the auth server the request to create a group, and waits the reponse
- * 
- * @param group_id 
- * @param group_secret 
- * @return int8_t the return code, 1 means success
+ * @brief  Sends to the auth server the request to create a group, and waits the reponse
+ * @return the return code, 1 means success
  */
 int8_t auth_create_group(const char* group_id, const char* group_secret)
 {
@@ -99,6 +106,13 @@ int8_t auth_create_group(const char* group_id, const char* group_secret)
     return response;
 }
 
+/**
+ * @brief  Helper function to send an AuthMessage to the server, and wait for the response
+ * @note   
+ * @param  send_msg: the message to be sent
+ * @param  response_msg: where the incoming message will be written to
+ * @retval 1 for success sending and receiving, -1 for error with communication
+ */
 int send_auth_message_and_wait_response(AuthMessage send_msg, AuthMessage* response_msg)
 {
     //Stores whether the send and recv worked correctly

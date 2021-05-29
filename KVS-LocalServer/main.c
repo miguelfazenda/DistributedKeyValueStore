@@ -39,7 +39,7 @@ int main(void)
     printf("ab -> pointer: %p\n", table_get(&groups_table, "ab"));
     printf("ab -> pointer: %p\n", table_get(&groups_table, "bbbb"));*/
 
-    if(auth_create_socket() != 1)
+    if(auth_create_socket("127.0.0.1", 25565) != 1)
     {
         printf("Error creating the auth connection socket\n");
     }
