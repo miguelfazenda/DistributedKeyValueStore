@@ -88,5 +88,50 @@ int put_value(char* key, char* value)
         return(-1); //to do: erros
     }
 
+    //Receive response from server
+    if(receive_message(sock, &msg) == -1 )
+    {
+        return(-1); // to do: erros
+    }
     
+    if(msg.messageID == MSG_OKAY)
+    {
+        return(1);
+    }
+    else
+    {
+        return(msg.messageID);
+    }  
+}
+
+// Allocates memory to store the value, 
+int get_value(char* key, char** value)
+{
+    Message msg;
+    msg.messageID = MSG_GET;
+    msg.firstArg = key;
+    msg.secondArg = NULL;
+
+    if(send_message(sock, msg) == -1)
+    {
+        return(-1); //to do: erros
+    }
+
+    //Receive response from server
+    if(receive_message(sock, &msg) == -1 )
+    {
+        return(-1); // to do: erros
+    }
+
+    if(msg.messageID == MSG_OKAY)
+    {
+        printf("Value retrieved: %s\n", msg.secondArg);
+        return(1);
+    }
+    else
+    {
+        return(msg.messageID);
+    }  
+
+    return(1);
 }

@@ -21,7 +21,7 @@ typedef struct HashTable_struct
 HashTable table_create(void (*free_value_func)(void*));
 void table_insert(HashTable* table, char* key, void* value);
 void* table_get(HashTable* table, char* key);
-void table_delete(HashTable* table, char* key);
+int table_delete(HashTable* table, char* key);
 void table_free(HashTable* table);
 
 void free_value_str(void*);

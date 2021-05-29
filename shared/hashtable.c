@@ -11,10 +11,10 @@
  * @param key The String
  * @return int The hash value between 0 and TABLE_SIZE-1
  */
-int table_hash_function(char* key)
+int table_hash_function(char *key)
 {
     int sum = 0;
-    for(size_t i = 0; i < strlen(key); i++)
+    for (size_t i = 0; i < strlen(key); i++)
     {
         sum += (int)key[i];
     }
@@ -27,17 +27,17 @@ int table_hash_function(char* key)
  * 
  * @return HashTable The table
  */
-HashTable table_create(void (*free_value_func)(void*))
+HashTable table_create(void (*free_value_func)(void *))
 {
     HashTable table;
-    
-    for(size_t i = 0; i < TABLE_SIZE; i++)
+
+    for (size_t i = 0; i < TABLE_SIZE; i++)
     {
         table.array[i] = NULL;
     }
-    
+
     table.free_value_func = free_value_func;
-    
+
     return table;
 }
 
@@ -50,53 +50,52 @@ HashTable table_create(void (*free_value_func)(void*))
  * @param value 
  */
 // Inserts a value for a specific key
-void table_insert(HashTable* table, char* key, void* value)
+void table_insert(HashTable *table, char *key, void *value)
 {
     int index = table_hash_function(key);
 
     //Finds the pointer to the pointer where the first item is stored
-    TableItem** itemPos = &table->array[index];
-    
-    while(*itemPos != NULL)
+    TableItem **itemPos = &table->array[index];
+
+    while (*itemPos != NULL)
     {
-        if(strcmp(itemPos->key, key) == 0)
+        if (strcmp((*itemPos)->key, key) == 0)
         {
-            return itemPos->value;
+            table->free_value_func((*itemPos)->value);
+            (*itemPos)->value = value;
+            break;
         }
-        
-        itemPos = itemPos->next;
+
+        *itemPos = (*itemPos)->next;
     }
 
-    //If itemPos doen't point to NULL, advance in the list
-    while(*itemPos != NULL)
+    if (*itemPos == NULL)
     {
-        itemPos = &(*itemPos)->next;
+        *itemPos = malloc(sizeof(TableItem));
+
+        //Allocate and copy the key, because the original key string may be free-ed later
+        (*itemPos)->key = (char *)malloc((strlen(key) + 1) * sizeof(char));
+        strcpy((*itemPos)->key, key);
+
+        (*itemPos)->value = value;
+        (*itemPos)->next = NULL;
     }
-
-    *itemPos = malloc(sizeof(TableItem));
-
-    //Allocate and copy the key, because the original key string may be free-ed later
-    (*itemPos)->key = (char*)malloc((strlen(key)+1)*sizeof(char));
-    strcpy((*itemPos)->key, key);
-
-    (*itemPos)->value = value;
-    (*itemPos)->next = NULL;
 }
 
 // Finds the value/group for a specific key/id. If found, return pointer for value. If not found, return NULL
-void* table_get(HashTable* table, char* key)
+void *table_get(HashTable *table, char *key)
 {
     int index = table_hash_function(key);
 
-    TableItem* itemPos = table->array[index];
-    
-    while(itemPos != NULL)
+    TableItem *itemPos = table->array[index];
+
+    while (itemPos != NULL)
     {
-        if(strcmp(itemPos->key, key) == 0)
+        if (strcmp(itemPos->key, key) == 0)
         {
             return itemPos->value;
         }
-        
+
         itemPos = itemPos->next;
     }
 
@@ -104,30 +103,32 @@ void* table_get(HashTable* table, char* key)
     return NULL;
 }
 
-void table_delete(HashTable* table, char* key)
+// Deletes table. If it exists, is deleted (return 0). If it doesnt exist, return(-1)
+int table_delete(HashTable *table, char *key)
 {
     int index = table_hash_function(key);
 
     //Finds the pointer to the pointer where the first item is stored
-    TableItem** itemPos = &table->array[index];
-    
+    TableItem **itemPos = &table->array[index];
+
     //If itemPos doen't point to NULL, advance in the list
-    while(*itemPos != NULL)
+    while (*itemPos != NULL)
     {
-        if(strcmp((*itemPos)->key, key))
+        if (strcmp((*itemPos)->key, key))
         {
             //Found the correct list entry, delete it
             free((*itemPos)->key);
             table->free_value_func((*itemPos)->value);
             free(*itemPos);
 
-
             *itemPos = (*itemPos)->next;
-            break;
-        }
+            return(0); //successfully deleted
+         }
 
         itemPos = &(*itemPos)->next;
     }
+
+    return(-1); //does not exist
 }
 
 /**
@@ -135,17 +136,17 @@ void table_delete(HashTable* table, char* key)
  * 
  * @param table 
  */
-void table_free(HashTable* table)
+void table_free(HashTable *table)
 {
     printf("UNIMPLEMENTED! THIS SHOULD FREE ALL OF THE TABLE'S CONTENTS\n");
 }
 
-void free_value_str(void* ptr)
+void free_value_str(void *ptr)
 {
     free(ptr);
 }
 
-void free_value_hashtable(void* ptr)
+void free_value_hashtable(void *ptr)
 {
-    table_free((HashTable*) ptr);
+    table_free((HashTable *)ptr);
 }

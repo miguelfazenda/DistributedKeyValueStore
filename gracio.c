@@ -1,21 +1,22 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+
+void get(char * entra)
+{
+    char* word = (char*) malloc(10*sizeof(char));
+    strcpy(word, "mekie");
+    entra = word;
+}
 
 int main()
 {
-    int a = 10;
-    int* b;
-    int* c; 
+    char *entra;
+    entra = (char*) malloc (sizeof(char)*10);
+    strcpy(entra, "ola");
+    printf("%s\n", entra);
+    free(entra);
 
-    c = (int*) malloc(sizeof(int));
-    *c = 100;
-    b = &a;
-
-    printf("a: %d, b: %p, c:%p\n", a, b, c);
-    
-    *c = *b;
-    printf("a: %d, b: %p, c:%p\n", a, b, c);
-    printf("c:%d\n", *c);
-
-    return(0);
+    get(entra);
+    printf("%s\n", entra);
 }
