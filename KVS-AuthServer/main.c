@@ -37,7 +37,7 @@ int main(void)
     //Creates the server socket (stored in global variable "sock")
     create_server();
     
-    char recv_buf[AUTH_MSG_BUFFER_SIZE];
+    char recv_buf[sizeof(AuthMessage)];
 
     struct sockaddr_in sender_sock_addr;
     socklen_t sender_sock_addr_size;
@@ -47,7 +47,7 @@ int main(void)
     memset(&sender_sock_addr, 0, sizeof(struct sockaddr_in));
     while(1) {
         sender_sock_addr_size = sizeof(struct sockaddr_in);
-        ssize_t n_bytes = recvfrom(sock, &recv_buf, AUTH_MSG_BUFFER_SIZE, 0,
+        ssize_t n_bytes = recvfrom(sock, &recv_buf, sizeof(AuthMessage), 0,
                         (struct sockaddr*)&sender_sock_addr, &sender_sock_addr_size);
         
         if(n_bytes < 1)
@@ -127,7 +127,7 @@ void handle_message_login(AuthMessage* msg, struct sockaddr_in sender_sock_addr)
     }
     
     //Send the response (the messageID on the struct is used for sending the login_response code)
-    AuthMessage resp_msg = { .messageID = login_response, .firstArg = {'\0'}, .secondArg = {'\0'} };
+    AuthMessage resp_msg = { .messageID = login_response, .firstArg = {'\0'}, .secondArg = {'\0'}, .request_number = msg->request_number };
     send_auth_message(resp_msg, sock, sender_sock_addr);
 }
 
@@ -150,7 +150,7 @@ void handle_message_create_group(AuthMessage* msg, struct sockaddr_in sender_soc
 
     //Send response
     int8_t response = 1;
-    AuthMessage resp_msg = { .messageID = response, .firstArg = {'\0'}, .secondArg = {'\0'} };
+    AuthMessage resp_msg = { .messageID = response, .firstArg = {'\0'}, .secondArg = {'\0'}, .request_number = msg->request_number };
     send_auth_message(resp_msg, sock, sender_sock_addr);
 }
 
@@ -166,7 +166,7 @@ void handle_message_get_secret(AuthMessage* msg, struct sockaddr_in sender_sock_
     //Get the stored secret from the table
     char* stored_secret = (char*) table_get(&secrets_table, group_id);
 
-    AuthMessage resp_msg = { .messageID = 0, .firstArg = {'\0'}, .secondArg = {'\0'} };
+    AuthMessage resp_msg = { .messageID = 0, .firstArg = {'\0'}, .secondArg = {'\0'}, .request_number = msg->request_number };
 
     if(stored_secret == NULL)
     {

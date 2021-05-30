@@ -27,7 +27,7 @@ int receive_message(int sockFD, Message* msg)
 
     //Receives the arguments and Allocate the arguments according to their size
     msg->firstArg = NULL;
-    if(firstArgSize > 0)
+    if(firstArgSize > 0)    
     {
         msg->firstArg = (char*) malloc(firstArgSize * sizeof(char));
         n_bytes = recv(sockFD, (void*) msg->firstArg, firstArgSize * sizeof(char), 0);
@@ -108,6 +108,8 @@ void serialize_auth_message(AuthMessage* message, char* buffer)
     //Make sure they are null-terminated strings (even if it cuts the data)
     buffer[100] = '\0';
     buffer[200] = '\0';
+
+    buffer[201] = (char)message->request_number;
 }
 
 /**
@@ -125,13 +127,15 @@ void deserialize_auth_message(AuthMessage* message, char* buffer)
     message->firstArg[100] = '\0';
     memcpy(message->secondArg, &buffer[101], 100);
     message->secondArg[200] = '\0';
+
+    message->request_number = (uint8_t)buffer[201];
 }
 
 /**
  * @brief  Creates an AuthMessage struct, and copies the args strings to the struct
  * @retval the new AuthMessage struct instance
  */
-AuthMessage create_auth_message(const int8_t message_id, const char* first_arg, const char* second_arg)
+AuthMessage create_auth_message(const int8_t message_id, const char* first_arg, const char* second_arg, uint8_t request_number)
 {
     AuthMessage msg = { .messageID = message_id };
 
@@ -148,25 +152,27 @@ AuthMessage create_auth_message(const int8_t message_id, const char* first_arg, 
         strncat(msg.secondArg, second_arg, sizeof(msg.secondArg)-1);
     }
 
+    msg.request_number = request_number;
+
     return msg;
 }
 
 /**
  * @brief Sends a message on the with the contents of the message (uses serialize_auth_message)
- * 
+ *          Important: doesn't lock any mutex. Make sure it is locked if needed before calling
  * @param msg 
  * @return int 1 means it was sent sucessfully, other values means an error ocurred
  */
 int send_auth_message(AuthMessage msg, int sock, struct sockaddr_in server_address)
 {
-    char buf[AUTH_MSG_BUFFER_SIZE];
+    char buf[sizeof(AuthMessage)];
 
     //Convert the message to the buffer
     serialize_auth_message(&msg, buf);
 
     // Send the message
-    ssize_t send_status = sendto(sock, buf, AUTH_MSG_BUFFER_SIZE, 0, (struct sockaddr*)&server_address, sizeof(server_address));
-    if(send_status != AUTH_MSG_BUFFER_SIZE)
+    ssize_t send_status = sendto(sock, buf, sizeof(AuthMessage), 0, (struct sockaddr*)&server_address, sizeof(server_address));
+    if(send_status != sizeof(AuthMessage))
     {
         //Didn't send correctly, send the send_status, except if 0>send_status>AUTH_MSG_BUFFER_SIZE, then send -1
         return send_status > 0 ? -1 : (int)send_status;

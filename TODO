@@ -4,3 +4,7 @@ TODO:
     "Create group – receives the identifier of a group (a string) and prints a secret (a string)" ???
 
     Testar cliente sem ter feito login interagir
+
+    Se enviar uma string grande no insert, o recv do receive_message sai separado
+        testar com insert a ffddklasdfjakjfdlaskjfwiopkjlvmdfsjipgnriunaskjdfs, jksdfjksdfjklsdfajksdfjkldsfjkldfskjfsdgjkdfgsjhfgdshjdfgsjhsdfgjhfgsdhjjhksfgjhksdfjkfhsgjkfghdjkfghsjkghsdghjfsd
+        https://stackoverflow.com/questions/4336612/handling-multiple-recv-calls-and-all-possible-scenarios

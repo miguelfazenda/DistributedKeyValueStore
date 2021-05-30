@@ -16,9 +16,6 @@
 
 #include "error_codes.h"
 
-#define AUTH_MSG_BUFFER_SIZE 201
-
-
 /*typedef struct MessageHeader_struct
 {
     __uint8_t messageID;
@@ -39,11 +36,14 @@ typedef struct AuthMessage_struct
     int8_t messageID;
     char firstArg[AUTH_MESSAGE_STRUCT_ARG_SIZE];
     char secondArg[AUTH_MESSAGE_STRUCT_ARG_SIZE];
+
+    //Contains an unique number for that request, to check if the response corresponds to this request
+    uint8_t request_number;
 } AuthMessage;
 
 void serialize_auth_message(AuthMessage* message, char* buffer);
 void deserialize_auth_message(AuthMessage* message, char* buffer);
-AuthMessage create_auth_message(const int8_t message_id, const char* first_arg, const char* second_arg);
+AuthMessage create_auth_message(const int8_t message_id, const char* first_arg, const char* second_arg, uint8_t request_number);
 int send_auth_message(AuthMessage msg, int sock, struct sockaddr_in server_address);
 
 int receive_message(int sockFD, Message* msg);

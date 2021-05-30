@@ -52,14 +52,14 @@ int main(void)
     }
 
     //TODO - remove this, Cria o grupo para testar
-    int status_create_group = auth_create_group("groupId", "Secret1");
+    int status_create_group = auth_create_group("a", "b");
     if(status_create_group == 1)
         printf("Grupo criado com sucesso\n");
     else
         printf("Erro a criar grupo: %d\n", status_create_group);
 
     char group_secret[AUTH_MESSAGE_STRUCT_ARG_SIZE];
-    int status_get_secret = auth_get_secret("groupId", group_secret);
+    int status_get_secret = auth_get_secret("a", group_secret);
     if(status_get_secret == 1)
         printf("Segredo obtido: %s\n", group_secret);
     else if(status_get_secret == ERROR_AUTH_GROUP_NOT_PRESENT)
