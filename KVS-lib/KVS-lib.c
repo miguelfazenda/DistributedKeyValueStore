@@ -157,7 +157,6 @@ int delete_value(char* key)
 
     if(msg.messageID == MSG_OKAY)
     {
-        printf("Successfully deleted");
         return(1);
     }
 
