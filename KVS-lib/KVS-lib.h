@@ -2,7 +2,7 @@
 #define KVS_LIB_H
 #define SERVER_ADDRESS "/tmp/server"
 
-int sock = 0;
+int sock;
 int establish_connection (const char * group_id, const char * secret);
 int put_value(char * key, char * value);
 int get_value(char * key, char ** value);
