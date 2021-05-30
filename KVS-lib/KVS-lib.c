@@ -90,3 +90,17 @@ int put_value(char* key, char* value)
 
     
 }
+
+int close_connection()
+{
+    //Warn server this client is disconnecting
+    Message msg = { .messageID = MSG_DISCONNECT, .firstArg = NULL, .secondArg = NULL };
+    if(send_message(sock, msg) != 1)
+        //Failed sending message about the disconnection
+        return ERROR_DISCONNECTION_WARNING_FAILED;
+
+    //Close the socket
+    close(sock);
+
+    return 1;
+}

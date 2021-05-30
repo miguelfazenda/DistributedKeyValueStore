@@ -12,6 +12,7 @@
 #define MSG_REGISTER_CALLBACK 5
 #define MSG_CALLBACK 6
 #define MSG_OKAY 7
+#define MSG_DISCONNECT 8
 
 #include "error_codes.h"
 

@@ -18,9 +18,16 @@
 
 #define SERVER_ADDRESS "/tmp/server"
 
+//Server thread 
+pthread_t server_thread;
+//Socket listening to incoming connections
+int listen_sock;
+
+bool quitting = false;
+
 void* run_server(void* a);
-void create_auth_client_socket();
 void remove_and_free_client_from_list(Client* client);
+void quit(void);
 
 int main(void)
 {
@@ -64,16 +71,34 @@ int main(void)
 
 
     //Creates a thread to run the server accepting connections
-    pthread_t server_thread;
     pthread_create(&server_thread, NULL, run_server, NULL);
 
 
     //Terminal reading
     printf("TODO: CENAS DE LER O TECLADO\n");
     
+    while(!quitting)
+    {
+        char term[100];
+        fgets(term, 100, stdin);        
+
+        //Remove \n
+        size_t term_length = strlen(term);
+        if(term_length > 0)
+        {
+            char* new_line_pos = &term[strlen(term)-1];
+            if(*new_line_pos == '\n')
+                *new_line_pos = '\0';
+        }
+
+        if(strcmp((const char*)term, "quit") == 0)
+        {
+            quit();
+        }
+    }
 
     //Wait for server thread to stop
-    pthread_join(server_thread, NULL);
+    //pthread_join(server_thread, NULL);
 
     return 0;
 }
@@ -89,8 +114,11 @@ void* thread_client_routine(void* in)
         msg.firstArg = NULL;
         msg.secondArg = NULL;
 
-        if(receive_message(socketFD, &msg) == 1)
+        int recv_status = receive_message(socketFD, &msg);
+
+        if(recv_status == 1)
         {
+            //Received message successfully
             printf("Received msg %d, %s, %s\n", msg.messageID, msg.firstArg, msg.secondArg);
 
             if(msg.messageID == MSG_PUT)
@@ -111,6 +139,12 @@ void* thread_client_routine(void* in)
                     client->stay_connected = 0;
                 }
             }
+            else if(msg.messageID == MSG_DISCONNECT)
+            {
+                //The client informed the server it is disconnecting.
+                printf("Client has disconnected\n");
+                client->stay_connected = 0;
+            }
 
             /*if(msg.messageID < 0 || msg.messageID > MAX_HANDLING_FUNCTION_ID || message_handling_functions[msg.messageID] == NULL)
             {
@@ -128,6 +162,13 @@ void* thread_client_routine(void* in)
                 }
             }*/
 
+        }
+        else if(recv_status == 0)
+        {
+            //The socket has been shutdown (by quit())
+            //TODO inform the client the server has shutdown
+            printf("Client socket has been shutdown\n");
+            client->stay_connected = 0;
         }
         else
         {
@@ -164,7 +205,6 @@ void client_connected(int clientFD)
 
 void* run_server(__attribute__((unused)) void* a)
 {
-    int listen_sock;
     struct sockaddr_un listen_sock_addr;
 
     //Removes the previous socket file
@@ -217,9 +257,35 @@ void* run_server(__attribute__((unused)) void* a)
         }
     }
 
-    close(listen_sock);
+    if(listen_sock != 0)
+        close(listen_sock);
     listen_sock = 0;
 
     return NULL;
 }
 
+void quit(void)
+{
+    printf("Quitting\n");
+    quitting = true;
+
+    //Stop all client scokets and threads
+    pthread_mutex_lock(&connected_clients.mtx_client_list);
+    Client* client = connected_clients.client_list;
+    while(client != NULL)
+    {
+        //TODO avisar clientes que o servidor vai desligar. Talvez precise de um mutex, para nao enviar 2 coisas ao mesmo tempo com a outra thread
+
+        //Shutdown the socket and wait for the thread to join
+        shutdown(client->sockFD, SHUT_RDWR);
+        pthread_join(client->thread, NULL);
+    }
+    pthread_mutex_unlock(&connected_clients.mtx_client_list);
+
+    //Close listen_sock
+    shutdown(listen_sock, SHUT_RDWR);
+    close(listen_sock);
+    listen_sock = 0;
+    //Wait for server thread to stop
+    pthread_join(server_thread, NULL);
+}
