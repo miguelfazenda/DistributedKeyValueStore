@@ -83,6 +83,9 @@ int put_value(char* key, char* value)
     msg.firstArg = key;
     msg.secondArg = value;
 
+    printf("put_value: key: %s\n", msg.firstArg);
+    printf("put_value: value: %s\n", msg.secondArg);
+
     if(send_message(sock, msg) == -1)
     {
         return(-1); //to do: erros
@@ -126,6 +129,36 @@ int get_value(char* key, char** value)
     if(msg.messageID == MSG_OKAY)
     {
         printf("Value retrieved: %s\n", msg.secondArg);
+        *value = (char*) malloc (sizeof(msg.secondArg));
+        strcpy(*value, msg.secondArg);
+        return(1);
+    }
+
+    //If it wasn't MSG_OKAY, then return the error contained in msg.messageID
+    return(msg.messageID);
+}
+
+int delete_value(char* key)
+{
+    Message msg;
+    msg.messageID = MSG_DELETE;
+    msg.firstArg = key;
+    msg.secondArg = NULL;
+
+    if(send_message(sock, msg) == -1)
+    {
+        return(-1); //to do: erros
+    }
+
+    //Receive response from server
+    if(receive_message(sock, &msg) == -1 )
+    {
+        return(-1); // to do: erros
+    }
+
+    if(msg.messageID == MSG_OKAY)
+    {
+        printf("Successfully deleted");
         return(1);
     }
     else

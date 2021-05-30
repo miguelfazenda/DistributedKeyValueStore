@@ -8,7 +8,7 @@
             "name": "(gdb) Launch",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/a.out",
+            "program": "${workspaceFolder}/KVS-lib/a.out",
             "args": [],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",

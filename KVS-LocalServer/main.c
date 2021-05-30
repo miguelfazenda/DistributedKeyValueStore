@@ -86,6 +86,15 @@ void* thread_client_routine(void* in)
                     client->stay_connected = 0;
                 }
             }
+            else if(msg.messageID == MSG_GET)
+            {
+                if(msg_received_get(client, &msg) == -1)
+                {
+                    // Error, disconnect client
+                    printf("Error receiving message from client. Disconnecting client\n");
+                    client->stay_connected = 0;
+                }
+            }
 
             /*if(msg.messageID < 0 || msg.messageID > MAX_HANDLING_FUNCTION_ID || message_handling_functions[msg.messageID] == NULL)
             {
@@ -107,7 +116,7 @@ void* thread_client_routine(void* in)
         else
         {
             // Error, disconnect client
-            printf("Error receiving message from client. Disconnecting client\n");
+            printf("Error receiving message from client. Disconnecting client A\n");
             client->stay_connected = 0;
         }
 

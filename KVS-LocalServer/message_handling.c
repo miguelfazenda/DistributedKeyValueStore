@@ -56,21 +56,24 @@ int msg_received_login(Client *client, Message *msg)
     return (1);
 }
 /*Message is received, this function assigns the value to the key and sends feedback on the execution to the application*/
-//Returns -1 if failed sending response, 1 if success
 int msg_received_put(Client *client, Message *msg)
 {
     HashTable *group;
 
     //Finds the group table
     group = table_get(&groups_table, client->group_id);
-    table_insert(group, msg->firstArg, msg->secondArg);
+    table_insert(group, msg->firstArg, strdup(msg->secondArg));
 
     //Create and send message to client
-    Message msg2 = { .messageID = MSG_OKAY, .firstArg = NULL, .secondArg = NULL};
+    Message msg2;
+    msg2.messageID = MSG_OKAY;
+    msg2.firstArg = NULL;
+    msg2.secondArg = NULL;
     if (send_message(client->sockFD, msg2) == -1)
     {
         return (-1);
     }
+    // TO DO: ERROS -> return negative
 
     return (1); //success
 }
@@ -83,14 +86,10 @@ int msg_received_get(Client *client, Message *msg)
 
     //Finds the group table
     group = table_get(&groups_table, client->group_id);
-    
-    //Get the value
     value = table_get(group, msg->firstArg);
-    
     // If value == NULL, not found, else it is found and sent to client
     if (value == NULL)
     {
-        //Value not found
         msg2.messageID = -1;
         msg2.firstArg = NULL;
         msg2.secondArg = NULL;
@@ -98,17 +97,16 @@ int msg_received_get(Client *client, Message *msg)
     }
     else
     {
-        //Success getting the value
         msg2.messageID = MSG_OKAY;
         msg2.firstArg = NULL;
         msg2.secondArg = value;
     }
 
-    //Send response to the client
     if (send_message(client->sockFD, msg2) == -1)
     {
         return (-1);
     }
+    // TO DO: ERROS -> return negative
 
     return (1); //success
 }
@@ -121,22 +119,21 @@ int msg_received_delete(Client *client, Message *msg)
     //Finds the group table
     group = table_get(&groups_table, client->group_id);
     // If value == NULL, not found, else it is found and sent to client
-    if (table_delete(group, msg->firstArg) == 0) 
+    if (table_delete(group, msg->firstArg) == 0) //successfully deleted
     {
-        //successfully deleted
         msg2.messageID = MSG_OKAY;
         msg2.firstArg = NULL;
         msg2.secondArg = NULL;
+        
     }
     else
     {
-        //Error deleting
-        msg2.messageID = -1; //to do:erros (but key/value does not exist)
+        // value not found
+        msg2.messageID = -1; 
         msg2.firstArg = NULL;
         msg2.secondArg = NULL;
     }
 
-    //Send response to the client
     if (send_message(client->sockFD, msg2) == -1)
     {
         return (-1);
