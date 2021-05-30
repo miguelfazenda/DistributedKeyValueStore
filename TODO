@@ -1,0 +1,6 @@
+TODO:
+    informar o cliente quando o server fecha e vice versa
+
+    "Create group – receives the identifier of a group (a string) and prints a secret (a string)" ???
+
+    Testar cliente sem ter feito login interagir

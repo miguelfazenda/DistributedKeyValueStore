@@ -1,6 +1,14 @@
 {
     "files.associations": {
         "socket.h": "c",
-        "stdlib.h": "c"
+        "stdlib.h": "c",
+        "hashtable.h": "c",
+        "auth_defines.h": "c",
+        "types.h": "c",
+        "kvs-lib.h": "c",
+        "auth.h": "c",
+        "un.h": "c",
+        "message.h": "c",
+        "sstream": "c"
     }
 }

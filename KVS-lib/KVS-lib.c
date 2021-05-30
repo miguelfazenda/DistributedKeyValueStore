@@ -101,10 +101,9 @@ int put_value(char* key, char* value)
     {
         return(1);
     }
-    else
-    {
-        return(msg.messageID);
-    }  
+    
+    //If it wasn't MSG_OKAY, then return the error contained in msg.messageID
+    return(msg.messageID);
 }
 
 // Allocates memory to store the value, 
@@ -161,10 +160,26 @@ int delete_value(char* key)
         printf("Successfully deleted");
         return(1);
     }
-    else
-    {
-        return(msg.messageID);
-    }  
 
-    return(1);
+    //If it wasn't MSG_OKAY, then return the error contained in msg.messageID
+    return(msg.messageID);
+}
+
+int close_connection()
+{
+    if(sock != 0)
+    {
+        //Warn server this client is disconnecting
+        Message msg = { .messageID = MSG_DISCONNECT, .firstArg = NULL, .secondArg = NULL };
+        if(send_message(sock, msg) != 1)
+            //Failed sending message about the disconnection
+            return ERROR_DISCONNECTION_WARNING_FAILED;
+
+        //Close the socket
+        close(sock);
+
+        return 1;
+    }
+
+    return -1;
 }

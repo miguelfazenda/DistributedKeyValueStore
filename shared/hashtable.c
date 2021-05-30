@@ -5,13 +5,15 @@
 
 #include "hashtable.h"
 
+int table_hash_function(const char* key);
+
 /**
  * @brief Generates a hash of a string. It's the sum of all characters
  * 
  * @param key The String
  * @return int The hash value between 0 and TABLE_SIZE-1
  */
-int table_hash_function(char *key)
+int table_hash_function(const char* key)
 {
     int sum = 0;
     for (size_t i = 0; i < strlen(key); i++)
@@ -49,8 +51,7 @@ HashTable table_create(void (*free_value_func)(void *))
  * @param key 
  * @param value 
  */
-// Inserts a value for a specific key
-void table_insert(HashTable *table, char *key, void *value)
+void table_insert(HashTable* table, const char* key, void* value)
 {
     int index = table_hash_function(key);
 
@@ -106,6 +107,7 @@ void *table_get(HashTable *table, char *key)
 // Deletes table. If it exists, is deleted (return 0). If it doesnt exist, return(-1)
 int table_delete(HashTable *table, char *key)
 {
+    //TODO avisar se não encontrar?
     int index = table_hash_function(key);
 
     //Finds the pointer to the pointer where the first item is stored

@@ -1,4 +1,3 @@
-#include "../shared/hashtable.h"
 #include <stdio.h>
 #include <sys/socket.h>
 #include <sys/un.h>
@@ -8,24 +7,29 @@
 #include <unistd.h>
 #include <errno.h>
 #include <stdbool.h>
+#include <stdint.h>
+
+#include "../shared/hashtable.h"
 #include "../shared/message.h"
 #include "client_list.h"
 #include "message_handling.h"
 #include "globals.h"
+#include "auth.h"
 
 #define SERVER_ADDRESS "/tmp/server"
-#define AUTH_CLIENT_ADDRESS "/tmp/server_auth_client"
-#define AUTH_SERVER_ADDRESS "/tmp/auth_server"
 
-int auth_sock;
-struct sockaddr_un auth_sock_addr;
-struct sockaddr_un auth_server_address;
+//Server thread 
+pthread_t server_thread;
+//Socket listening to incoming connections
+int listen_sock;
 
-void create_server();
-void create_auth_client_socket();
+bool quitting = false;
+
+void* run_server(void* a);
 void remove_and_free_client_from_list(Client* client);
+void quit(void);
 
-int main()
+int main(void)
 {
     groups_table = table_create(free_value_hashtable);
     /*table_insert(&groups_table, "miguel", "fixe");
@@ -42,13 +46,59 @@ int main()
     printf("ab -> pointer: %p\n", table_get(&groups_table, "ab"));
     printf("ab -> pointer: %p\n", table_get(&groups_table, "bbbb"));*/
 
-/*    create_auth_client_socket();
+    if(auth_create_socket("127.0.0.1", 25565) != 1)
+    {
+        printf("Error creating the auth connection socket\n");
+    }
 
-    char buf[100];
-    buf[0] = 1;
-    sendto(auth_sock, buf, 100, 0, &auth_server_address, sizeof(auth_server_address));*/
+    //TODO - remove this, Cria o grupo para testar
+    int status_create_group = auth_create_group("groupId", "Secret1");
+    if(status_create_group == 1)
+        printf("Grupo criado com sucesso\n");
+    else
+        printf("Erro a criar grupo: %d\n", status_create_group);
 
-    create_server();
+    char group_secret[AUTH_MESSAGE_STRUCT_ARG_SIZE];
+    int status_get_secret = auth_get_secret("groupId", group_secret);
+    if(status_get_secret == 1)
+        printf("Segredo obtido: %s\n", group_secret);
+    else if(status_get_secret == ERROR_AUTH_GROUP_NOT_PRESENT)
+        printf("Erro grupo nao existente\n");
+    else
+        printf("Erro a obter segredo: %d\n", status_create_group);
+
+    
+
+
+    //Creates a thread to run the server accepting connections
+    pthread_create(&server_thread, NULL, run_server, NULL);
+
+
+    //Terminal reading
+    printf("TODO: CENAS DE LER O TECLADO\n");
+    
+    while(!quitting)
+    {
+        char term[100];
+        fgets(term, 100, stdin);        
+
+        //Remove \n
+        size_t term_length = strlen(term);
+        if(term_length > 0)
+        {
+            char* new_line_pos = &term[strlen(term)-1];
+            if(*new_line_pos == '\n')
+                *new_line_pos = '\0';
+        }
+
+        if(strcmp((const char*)term, "quit") == 0)
+        {
+            quit();
+        }
+    }
+
+    //Wait for server thread to stop
+    //pthread_join(server_thread, NULL);
 
     return 0;
 }
@@ -64,8 +114,11 @@ void* thread_client_routine(void* in)
         msg.firstArg = NULL;
         msg.secondArg = NULL;
 
-        if(receive_message(socketFD, &msg) == 1)
+        int recv_status = receive_message(socketFD, &msg);
+
+        if(recv_status == 1)
         {
+            //Received message successfully
             printf("Received msg %d, %s, %s\n", msg.messageID, msg.firstArg, msg.secondArg);
 
             if(msg.messageID == MSG_PUT)
@@ -95,6 +148,12 @@ void* thread_client_routine(void* in)
                     client->stay_connected = 0;
                 }
             }
+            else if(msg.messageID == MSG_DISCONNECT)
+            {
+                //The client informed the server it is disconnecting.
+                printf("Client has disconnected\n");
+                client->stay_connected = 0;
+            }
 
             /*if(msg.messageID < 0 || msg.messageID > MAX_HANDLING_FUNCTION_ID || message_handling_functions[msg.messageID] == NULL)
             {
@@ -112,6 +171,13 @@ void* thread_client_routine(void* in)
                 }
             }*/
 
+        }
+        else if(recv_status == 0)
+        {
+            //The socket has been shutdown (by quit())
+            //TODO inform the client the server has shutdown
+            printf("Client socket has been shutdown\n");
+            client->stay_connected = 0;
         }
         else
         {
@@ -146,9 +212,8 @@ void client_connected(int clientFD)
     pthread_create(&client->thread, NULL, thread_client_routine, (void*)client);
 }
 
-void create_server()
+void* run_server(__attribute__((unused)) void* a)
 {
-    int listen_sock;
     struct sockaddr_un listen_sock_addr;
 
     //Removes the previous socket file
@@ -200,27 +265,36 @@ void create_server()
             client_connected(clientFD);
         }
     }
+
+    if(listen_sock != 0)
+        close(listen_sock);
+    listen_sock = 0;
+
+    return NULL;
 }
 
-void create_auth_client_socket()
+void quit(void)
 {
-    //Removes the previous socket file
-    remove(AUTH_CLIENT_ADDRESS);
+    printf("Quitting\n");
+    quitting = true;
 
-    auth_sock = socket(AF_UNIX, SOCK_DGRAM, 0);
-    if (auth_sock == -1){
-        exit(-1);
+    //Stop all client scokets and threads
+    pthread_mutex_lock(&connected_clients.mtx_client_list);
+    Client* client = connected_clients.client_list;
+    while(client != NULL)
+    {
+        //TODO avisar clientes que o servidor vai desligar. Talvez precise de um mutex, para nao enviar 2 coisas ao mesmo tempo com a outra thread
+
+        //Shutdown the socket and wait for the thread to join
+        shutdown(client->sockFD, SHUT_RDWR);
+        pthread_join(client->thread, NULL);
     }
-    printf("socket created\n");
-    auth_sock_addr.sun_family = AF_UNIX;
-    strcpy(auth_sock_addr.sun_path, AUTH_CLIENT_ADDRESS);
+    pthread_mutex_unlock(&connected_clients.mtx_client_list);
 
-    if(bind(auth_sock, (struct sockaddr*)&auth_sock_addr, sizeof(auth_sock_addr)) == -1){
-        exit(-1);
-    }
-    printf("socket with an address %s\n", AUTH_CLIENT_ADDRESS);
-
-    //Stores the server address in a struct
-    auth_server_address.sun_family = AF_UNIX;
-    strcpy(auth_server_address.sun_path, AUTH_SERVER_ADDRESS);
+    //Close listen_sock
+    shutdown(listen_sock, SHUT_RDWR);
+    close(listen_sock);
+    listen_sock = 0;
+    //Wait for server thread to stop
+    pthread_join(server_thread, NULL);
 }
