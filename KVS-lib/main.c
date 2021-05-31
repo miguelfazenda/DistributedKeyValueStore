@@ -5,7 +5,7 @@
 #include "../shared/message.h"
 #include "../shared/error_codes.h"
 
-void read_terminal(char* word);
+void read_terminal(char *word);
 int login_m();
 void get_m();
 void delete_m();
@@ -23,13 +23,13 @@ const char *get_error_code_string(int8_t code, const char *generic_error)
         return "Wrong secret!";
     else if (code == ERROR_AUTH_GROUP_NOT_PRESENT)
         return "Group not present in the server!";
-    else if(code == ERROR_FAILED_AUTHENTICATION)
+    else if (code == ERROR_FAILED_AUTHENTICATION)
         return "Failed authentication.";
-    else if(code == ERROR_SENDING)
+    else if (code == ERROR_SENDING)
         return "Failed sending information to server.";
-    else if(code == ERROR_RECEIVING)
+    else if (code == ERROR_RECEIVING)
         return "Failed receiving information from server.";
-    else if(code == ERROR_VALUE_NOT_FOUND)
+    else if (code == ERROR_VALUE_NOT_FOUND)
         return "Value not found.";
 
     return generic_error;
@@ -40,7 +40,10 @@ int main(void)
     char operation[10];
     char connected = 0;
 
-    printf("Welcome! Here are the commands for your operations:\n____________________\nauthentication: 'login'\ninsert a new value:'insert'\n____________________\n\n");
+    printf("Welcome! Here are the commands for your operations:\n____________________\n");
+    printf("authentication: 'login'\ndisconnect:'quit'\ninsert a new value:'insert'\n");
+    printf("obtain valye: 'get'\ndelete key/value:'delete'\nregister callback:'callback'\n");
+    printf("____________________\n\n");
     while (1)
     {
         printf("Opperation wanted: ");
@@ -56,7 +59,6 @@ int main(void)
         }
         else if (strcmp(operation, "quit") == 0)
         {
-            close_connection();
             break;
         }
         else if (connected == 1)
@@ -73,6 +75,10 @@ int main(void)
             {
                 delete_m();
             }
+            else if (strcmp(operation, "callback") == 0)
+            {
+                callback_m();
+            }
             else
             {
                 printf("Insert a valid operation\n");
@@ -87,6 +93,8 @@ int main(void)
     }
 
     close_connection();
+
+    return 1;
 }
 
 void read_terminal(char *word)
@@ -113,6 +121,7 @@ int login_m()
     if ((out = establish_connection(first_arg, second_arg)) == 0)
     {
         printf("Connection established.\n");
+
         return (1);
     }
     else
@@ -120,7 +129,11 @@ int login_m()
         printf("Error login: %s\n", get_error_code_string(out, error));
         return (0);
     }
-    
+}
+
+void f1(char *changed_key)
+{
+    printf("The key with name %s was changed\n", changed_key);
 }
 
 void insert_m()
@@ -182,3 +195,22 @@ void delete_m()
     }
 }
 
+void callback_m()
+{
+    char first_arg[100], error[100];
+    int out;
+
+    printf("Enter key: ");
+    read_terminal(first_arg);
+
+    out = register_callback(first_arg, f1);
+
+    if (out == 1)
+    {
+        printf("Callback Registered\n");
+    }
+    else
+    {
+        printf("Error registering callback: %s\n", get_error_code_string(out, error));
+    }
+}

@@ -27,6 +27,7 @@ int table_hash_function(const char* key)
 /**
  * @brief Creates a hash table. Initializing the vector with nulls
  * 
+ * @param free_value_func: The function that will be run when we delete/free values
  * @return HashTable The table
  */
 HashTable table_create(void (*free_value_func)(void *))
@@ -62,7 +63,8 @@ void table_insert(HashTable* table, const char* key, void* value)
     {
         if (strcmp((*itemPos)->key, key) == 0)
         {
-            table->free_value_func((*itemPos)->value);
+            if(table->free_value_func != NULL)
+                table->free_value_func((*itemPos)->value);
             (*itemPos)->value = value;
             break;
         }
@@ -124,7 +126,8 @@ int table_delete(HashTable *table, const char *key)
 
             //delete it
             free((*itemPos)->key);
-            table->free_value_func((*itemPos)->value);
+            if(table->free_value_func != NULL)
+                table->free_value_func((*itemPos)->value);
             free(*itemPos);
 
             //Set the current itemPos to the next
@@ -155,7 +158,8 @@ void table_free(HashTable *table)
             
             //Frees the item
             free(item->key);
-            table->free_value_func(item->value);
+            if(table->free_value_func != NULL)
+                table->free_value_func(item->value);
             free(item);
 
             item = next;
@@ -171,4 +175,5 @@ void free_value_str(void *ptr)
 void free_value_hashtable(void *ptr)
 {
     table_free((HashTable *)ptr);
+    free(ptr);
 }

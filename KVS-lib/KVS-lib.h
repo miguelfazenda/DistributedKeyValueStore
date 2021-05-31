@@ -1,6 +1,9 @@
 #ifndef KVS_LIB_H
 #define KVS_LIB_H
 #define SERVER_ADDRESS "/tmp/server"
+#include "../shared/hashtable.h"
+
+HashTable CallbackTable;
 
 int sock;
 int establish_connection (const char * group_id, const char * secret);

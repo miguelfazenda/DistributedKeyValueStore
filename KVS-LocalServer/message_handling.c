@@ -202,3 +202,41 @@ int msg_received_delete(Client *client, Message *msg)
     return (1); //success
 }
 
+
+int msg_received_register_callback(Client *client, Message *msg)
+{
+    char* key = msg->firstArg;
+    printf("Client %p wants to be warned when key %s is changed\n", (void*)client, key);
+
+    //New client list item
+    Client_List_Item* item = (Client_List_Item*)malloc(sizeof(Client_List_Item));
+    item->client = client;
+    item->next = NULL;
+
+    /* Add the client to a list on the hashtable value for that key  */
+
+    //First, get the existing list of clients w/ callback for that key
+    Client_List_Item* list = (Client_List_Item*)table_get(&clients_with_callback_by_key, key);
+    if(list == NULL)
+    {
+        //Create a new list with that client as the only item
+        table_insert(&clients_with_callback_by_key, key, (void*)item);
+    }
+    else
+    {
+        //List already exists, append this client to that list
+        while(list->next != NULL)
+            list = list->next;
+
+        list->next = item;
+    }    
+
+    //Send to the client it was successfuly registered
+    Message msg2 = { .messageID = MSG_OKAY, .firstArg = NULL, .secondArg = NULL };
+    if (send_message(client->sockFD, msg2) == -1)
+    {
+        return (-1);
+    }
+
+    return 1;
+}

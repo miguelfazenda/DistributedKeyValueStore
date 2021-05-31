@@ -26,6 +26,14 @@ typedef struct Client_List_struct
     pthread_mutex_t mtx_client_list;
 } Client_List;
 
+//TODO clarificar estas 3 estruturas. Talvez se possa usar esta, e tirar o struct Client_struct* next; do Client
+typedef struct Client_List_Item_struct
+{
+    Client* client;
+
+    struct Client_List_Item_struct* next;
+} Client_List_Item;
+
 void client_list_add(Client_List* list, Client* client);
 void client_list_remove_and_free(Client_List* list, Client* client);
 

@@ -159,6 +159,15 @@ void* thread_client_routine(void* in)
                     client->stay_connected = 0;
                 }
             }
+            else if(msg.messageID == MSG_REGISTER_CALLBACK)
+            {
+                if(msg_received_register_callback(client, &msg) == -1)
+                {
+                    // Error, disconnect client
+                    printf("Error receiving message from client. Disconnecting client\n");
+                    client->stay_connected = 0;
+                }
+            }
             else if(msg.messageID == MSG_DISCONNECT)
             {
                 //The client informed the server it is disconnecting.
