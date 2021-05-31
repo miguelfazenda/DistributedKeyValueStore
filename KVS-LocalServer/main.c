@@ -26,7 +26,7 @@ int listen_sock;
 bool quitting = false;
 
 void* run_server(void* a);
-void remove_and_free_client_from_list(Client* client);
+void disconnect_client(Client* client);
 void quit(void);
 
 int main(void)
@@ -199,9 +199,11 @@ void* thread_client_routine(void* in)
         free_message(&msg);
     }
 
-    //Client disconnected, close socket and remove it from clients list
-    close(socketFD);
-    client_list_remove_and_free(&connected_clients, client);
+    //Client disconnected, close socket and mark it as disconnected
+    disconnect_client(client);
+    //client_list_remove_and_free(&connected_clients, client);
+
+    printf("Client thread has ended. Connection time %g seconds\n", difftime(client->time_disconnected, client->time_connected));
 
     return(NULL);
 }
@@ -214,11 +216,31 @@ void client_connected(int clientFD)
     client->sockFD = clientFD;
     client->group_id = NULL;
     client->stay_connected = true;
+    client->connected = true;
+    client->time_connected = time(NULL);
+    client->time_disconnected = 0;
 
     client_list_add(&connected_clients, client);
 
     //Starts the client thread, and saves the thread handler in client->thread
     pthread_create(&client->thread, NULL, thread_client_routine, (void*)client);
+}
+
+/**
+ * @brief  Marks the client as disconnected, and closes the socket
+ * @note   
+ * @param  client: 
+ * @retval None
+ */
+void disconnect_client(Client* client)
+{
+    client->time_disconnected = time(NULL);
+    client->stay_connected = false;
+    client->connected = false;
+
+    //On closing the socket, the receive_message will fail, and 
+    close(client->sockFD);
+    client->sockFD = 0;
 }
 
 void* run_server(__attribute__((unused)) void* a)

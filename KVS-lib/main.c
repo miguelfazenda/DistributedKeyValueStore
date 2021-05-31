@@ -46,6 +46,11 @@ int main(void)
         {
             printf("You're already logged in. Insert a valid operation.\n");
         }
+        else if (strcmp(operation, "quit") == 0)
+        {
+            close_connection();
+            break;
+        }
         else if (connected == 1)
         {
             if (strcmp(operation, "insert") == 0)

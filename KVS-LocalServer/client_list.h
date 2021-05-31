@@ -11,6 +11,10 @@ typedef struct Client_struct
     bool stay_connected;
     char* group_id;
 
+    bool connected;
+    time_t time_connected;
+    time_t time_disconnected;
+
     struct Client_struct* next;
 } Client;
 
