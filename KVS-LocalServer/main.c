@@ -26,6 +26,8 @@ int listen_sock;
 bool quitting = false;
 
 void* run_server(void* a);
+void* thread_client_routine(void* in);
+void client_connected(int clientFD);
 void disconnect_client(Client* client);
 void quit(void);
 
