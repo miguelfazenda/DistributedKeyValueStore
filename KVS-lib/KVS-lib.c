@@ -21,14 +21,14 @@ int establish_connection (const char * group_id, const char * secret)
     sock = socket(AF_UNIX, SOCK_STREAM, 0);
     if (sock == -1)
     {
-        exit(ERROR_FAILED_AUTHENTICATION);
+        exit(ERROR_FAILED_CONNECTING);
     }
 
     sock_addr.sun_family = AF_UNIX;
     strcpy(sock_addr.sun_path, SOCKET_ADDR);
 
     if(bind(sock, (struct sockaddr*)&sock_addr, sizeof(sock_addr)) == -1){
-        exit(ERROR_FAILED_AUTHENTICATION);
+        exit(ERROR_FAILED_CONNECTING);
     }
 
     struct sockaddr_un server_address;
@@ -38,7 +38,7 @@ int establish_connection (const char * group_id, const char * secret)
     //Connects to the server
     if(connect(sock, (struct sockaddr*)&server_address, sizeof(server_address)))
     {
-        exit(ERROR_FAILED_AUTHENTICATION);
+        exit(ERROR_FAILED_CONNECTING);
     }
 
 

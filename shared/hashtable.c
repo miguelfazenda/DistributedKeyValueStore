@@ -67,7 +67,7 @@ void table_insert(HashTable* table, const char* key, void* value)
             break;
         }
 
-        *itemPos = (*itemPos)->next;
+        itemPos = &(*itemPos)->next;
     }
 
     if (*itemPos == NULL)
@@ -84,7 +84,7 @@ void table_insert(HashTable* table, const char* key, void* value)
 }
 
 // Finds the value/group for a specific key/id. If found, return pointer for value. If not found, return NULL
-void *table_get(HashTable *table, char *key)
+void *table_get(HashTable *table, const char *key)
 {
     int index = table_hash_function(key);
 
@@ -105,7 +105,7 @@ void *table_get(HashTable *table, char *key)
 }
 
 // Deletes table. If it exists, is deleted (return 0). If it doesnt exist, return(-1)
-int table_delete(HashTable *table, char *key)
+int table_delete(HashTable *table, const char *key)
 {
     //TODO avisar se não encontrar?
     int index = table_hash_function(key);
@@ -118,12 +118,17 @@ int table_delete(HashTable *table, char *key)
     {
         if (strcmp((*itemPos)->key, key) == 0)
         {
-            //Found the correct list entry, delete it
+            //Found the correct list entry
+            //Store the next
+            TableItem* next = (*itemPos)->next;
+
+            //delete it
             free((*itemPos)->key);
             table->free_value_func((*itemPos)->value);
             free(*itemPos);
 
-            *itemPos = (*itemPos)->next;
+            //Set the current itemPos to the next
+            *itemPos = next;
             return(0); //successfully deleted
          }
 
@@ -134,13 +139,28 @@ int table_delete(HashTable *table, char *key)
 }
 
 /**
- * @brief Frees the table (doesnt free the table*)
+ * @brief Frees the table (doesnt free the table*). Frees both the key and value
  * 
  * @param table 
  */
 void table_free(HashTable *table)
 {
-    printf("UNIMPLEMENTED! THIS SHOULD FREE ALL OF THE TABLE'S CONTENTS\n");
+    for(int i = 0; i<TABLE_SIZE; i++)
+    {
+        TableItem *item = table->array[i];
+
+        while (item != NULL)
+        {
+            TableItem* next = item->next;
+            
+            //Frees the item
+            free(item->key);
+            table->free_value_func(item->value);
+            free(item);
+
+            item = next;
+        }
+    }
 }
 
 void free_value_str(void *ptr)

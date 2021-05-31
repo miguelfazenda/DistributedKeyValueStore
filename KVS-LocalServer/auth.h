@@ -22,8 +22,8 @@ uint8_t request_number_counter;
 //A mutex to lock when we are communicating with the auth server
 pthread_mutex_t mtx_auth;
 
-int auth_create_socket(const char* host_name, uint16_t host_port);
-void auth_close_connection();
+int8_t auth_create_socket(const char* host_name, uint16_t host_port);
+void auth_close_connection(void);
 int8_t auth_send_login(const char* group_id, const char* group_secret);
 int8_t auth_create_group(const char* group_id, const char* group_secret);
 int8_t auth_get_secret(const char* group_id, char* group_secret);

@@ -8,7 +8,7 @@
 #define ERROR_SENDING -6
 #define ERROR_RECEIVING -7
 #define ERROR_VALUE_NOT_FOUND -8
-
+#define ERROR_FAILED_CONNECTING -9
 #define ERROR_RECV_TIMEOUT -10 //recv function timed out
 
 #endif

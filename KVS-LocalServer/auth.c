@@ -17,15 +17,15 @@
 
 #include "../shared/auth_defines.h"
 
-int send_auth_message_and_wait_response(AuthMessage send_msg, AuthMessage* response_msg);
-int receive_auth_response(AuthMessage* msg, uint8_t expected_request_number);
+int8_t send_auth_message_and_wait_response(AuthMessage send_msg, AuthMessage* response_msg);
+int8_t receive_auth_response(AuthMessage* msg, uint8_t expected_request_number);
 
 /**
  * @brief  Creates socket to communicate with the AuthServer
  * @note   Side-effects: changes auth_sock, and sets a few variables
  * @retval 1 for success, -1 for error
  */
-int auth_create_socket(const char* host_name, uint16_t host_port)
+int8_t auth_create_socket(const char* host_name, uint16_t host_port)
 {
     auth_sock = socket(AF_INET, SOCK_DGRAM, 0);
     if (auth_sock == -1)
@@ -57,7 +57,7 @@ int auth_create_socket(const char* host_name, uint16_t host_port)
         return -1;
     }
     memcpy((char *) &auth_server_address.sin_addr, (char *) hp->h_addr,
-        hp->h_length);
+        (size_t)hp->h_length);
 
     auth_sock_error_occured = false;
 
@@ -75,7 +75,7 @@ int auth_create_socket(const char* host_name, uint16_t host_port)
     return 1;
 }
 
-void auth_close_connection()
+void auth_close_connection(void)
 {
     close(auth_sock);
     pthread_mutex_destroy(&mtx_auth);
@@ -93,7 +93,7 @@ int8_t auth_send_login(const char* group_id, const char* group_secret)
     AuthMessage response_msg;
 
     //Sends the MSG_AUTH_CHECK_LOGIN message, and receives the response from the auth server
-    int status = send_auth_message_and_wait_response(
+    int8_t status = send_auth_message_and_wait_response(
         create_auth_message(MSG_AUTH_CHECK_LOGIN, group_id, group_secret, request_number_counter++), &response_msg);
 
     if(status != 1)
@@ -112,7 +112,7 @@ int8_t auth_create_group(const char* group_id, const char* group_secret)
     AuthMessage response_msg;
 
     //Sends the MSG_AUTH_CREATE_GROUP message, and receives the response from the auth server
-    int status = send_auth_message_and_wait_response(
+    int8_t status = send_auth_message_and_wait_response(
         create_auth_message(MSG_AUTH_CREATE_GROUP, group_id, group_secret, request_number_counter++), &response_msg);
 
     if(status != 1)
@@ -133,7 +133,7 @@ int8_t auth_get_secret(const char* group_id, char* group_secret)
     AuthMessage response_msg;
 
     //Sends the MSG_AUTH_CREATE_GROUP message, and receives the response from the auth server
-    int status = send_auth_message_and_wait_response(
+    int8_t status = send_auth_message_and_wait_response(
         create_auth_message(MSG_AUTH_GET_SECRET, group_id, NULL, request_number_counter++), &response_msg);
 
     if(status != 1)
@@ -157,10 +157,10 @@ int8_t auth_get_secret(const char* group_id, char* group_secret)
  * @param  response_msg: where the incoming message will be written to
  * @retval 1 for success sending and receiving, -1 for error with communication
  */
-int send_auth_message_and_wait_response(AuthMessage send_msg, AuthMessage* response_msg)
+int8_t send_auth_message_and_wait_response(AuthMessage send_msg, AuthMessage* response_msg)
 {
     //Stores whether the send and recv worked correctly
-    int status;
+    int8_t status;
 
     int num_tries = 0;
 
@@ -214,7 +214,7 @@ int send_auth_message_and_wait_response(AuthMessage send_msg, AuthMessage* respo
  * @param msg where the message will be stored
  * @param expected_request_number discards message with a different request_number
  */
-int receive_auth_response(AuthMessage* msg, uint8_t expected_request_number)
+int8_t receive_auth_response(AuthMessage* msg, uint8_t expected_request_number)
 {
     char recv_buf[sizeof(AuthMessage)];
 

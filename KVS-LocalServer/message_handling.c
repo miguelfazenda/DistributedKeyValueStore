@@ -83,15 +83,37 @@ int msg_received_put(Client *client, Message *msg)
 {
     HashTable *group;
 
-    //Finds the group table
-    group = table_get(&groups_table, client->group_id);
-    table_insert(group, msg->firstArg, strdup(msg->secondArg));
+    //Message that will be sent to the client
+    Message msg2 = { .messageID = -1, .firstArg = NULL, .secondArg = NULL };
 
-    //Create and send message to client
-    Message msg2;
-    msg2.messageID = MSG_OKAY;
-    msg2.firstArg = NULL;
-    msg2.secondArg = NULL;
+    if(client->group_id == NULL)
+    {
+        //If client hasn't logged in yet
+        msg2.messageID = ERROR_FAILED_AUTHENTICATION;
+    }
+    else
+    {
+        //Finds the group table
+        group = table_get(&groups_table, client->group_id);
+
+        //Check if the group table exists
+        if(group == NULL)
+        {
+            //Creates a new table for that group
+            group = (HashTable*) malloc(sizeof(HashTable));
+            *group = table_create(free_value_str);
+            table_insert(&groups_table, client->group_id, group);
+
+            printf("Created a new table for group %s\n", client->group_id);
+        }
+
+        //Inserts the value in the table
+        table_insert(group, msg->firstArg, strdup(msg->secondArg));
+
+        msg2.messageID = MSG_OKAY;
+    }
+
+    //Send message to client
     if (send_message(client->sockFD, msg2) == -1)
     {
         return (-1);
@@ -103,25 +125,36 @@ int msg_received_put(Client *client, Message *msg)
 int msg_received_get(Client *client, Message *msg)
 {
     HashTable *group;
-    char *value;
-    Message msg2;
+    char *value = NULL;
+    Message msg2 = { .messageID = -1, .firstArg = NULL, .secondArg = NULL };
 
-    //Finds the group table
-    group = table_get(&groups_table, client->group_id);
-    value = table_get(group, msg->firstArg);
-    // If value == NULL, not found, else it is found and sent to client
-    if (value == NULL)
+    if(client->group_id == NULL)
     {
-        msg2.messageID = ERROR_VALUE_NOT_FOUND;
-        msg2.firstArg = NULL;
-        msg2.secondArg = NULL;
-        //to do: value not found
+        //If client hasn't logged in yet
+        msg2.messageID = ERROR_FAILED_AUTHENTICATION;
     }
     else
     {
-        msg2.messageID = MSG_OKAY;
-        msg2.firstArg = NULL;
-        msg2.secondArg = value;
+        //Finds the group table
+        group = table_get(&groups_table, client->group_id);
+
+        //Check if the group table exists
+        if(group != NULL)
+        {
+            //If the group table exists, then try to get the value
+            value = table_get(group, msg->firstArg);
+        }
+
+        // If value == NULL, not found, else it is found and sent to client
+        if (value == NULL)
+        {
+            msg2.messageID = ERROR_VALUE_NOT_FOUND;
+        }
+        else
+        {
+            msg2.messageID = MSG_OKAY;
+            msg2.secondArg = value;
+        }
     }
 
     if (send_message(client->sockFD, msg2) == -1)
@@ -134,25 +167,31 @@ int msg_received_get(Client *client, Message *msg)
 
 int msg_received_delete(Client *client, Message *msg)
 {
-    HashTable *group;
-    Message msg2;
+    HashTable *group = NULL;
+    Message msg2 = { .messageID = -1, .firstArg = NULL, .secondArg = NULL };
 
-    //Finds the group table
-    group = table_get(&groups_table, client->group_id);
-    // If value == NULL, not found, else it is found and sent to client
-    if (table_delete(group, msg->firstArg) == 0) //successfully deleted
+    if(client->group_id == NULL)
     {
-        msg2.messageID = MSG_OKAY;
-        msg2.firstArg = NULL;
-        msg2.secondArg = NULL;
-        
+        //If client hasn't logged in yet
+        msg2.messageID = ERROR_FAILED_AUTHENTICATION;
     }
     else
     {
-        // value not found
-        msg2.messageID = ERROR_VALUE_NOT_FOUND; 
-        msg2.firstArg = NULL;
-        msg2.secondArg = NULL;
+        //Finds the group table
+        group = table_get(&groups_table, client->group_id);
+        // If value == NULL, not found, else it is found and sent to client
+        if (group != NULL && table_delete(group, msg->firstArg) == 0) //successfully deleted
+        {
+            msg2.messageID = MSG_OKAY;
+            msg2.firstArg = NULL;
+            msg2.secondArg = NULL;
+        }
+        else
+        {
+            msg2.messageID = ERROR_VALUE_NOT_FOUND; 
+            msg2.firstArg = NULL;
+            msg2.secondArg = NULL;
+        }
     }
 
     if (send_message(client->sockFD, msg2) == -1)
