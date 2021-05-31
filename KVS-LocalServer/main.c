@@ -315,6 +315,7 @@ void quit(void)
     while(client != NULL)
     {
         //TODO avisar clientes que o servidor vai desligar. Talvez precise de um mutex, para nao enviar 2 coisas ao mesmo tempo com a outra thread
+        //Na verdade avisar provavlmente nao faz sentido??
 
         //Shutdown the socket and wait for the thread to join
         shutdown(client->sockFD, SHUT_RDWR);

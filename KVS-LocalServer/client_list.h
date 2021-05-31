@@ -9,6 +9,8 @@ typedef struct Client_struct
     int sockFD;
     pthread_t thread;
     bool stay_connected;
+
+    //If group_id is NULL, the client isn't logged in yet
     char* group_id;
 
     bool connected;
