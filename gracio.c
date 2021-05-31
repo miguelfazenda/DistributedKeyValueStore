@@ -2,26 +2,32 @@
 #include <stdlib.h>
 #include <string.h>
 
-void get(char ** entra)
+void read(char **word_m)
 {
-    char* word = (char*) malloc(10*sizeof(char));
-    strcpy(word, "mekie");
-    *entra = word;
-}
+    int ch = 0, size = 0;
+    char word[10000];
 
-int get2(int* x)
-{
-    int y = 3;
+    while ((ch = getchar()) != '\n' && ch != EOF)
+    {
+        word[size] = (char)ch;
+        size++;
+    }
 
-    *x = y;
+    *word_m = (char *)malloc((size + 1) * sizeof(char));
+
+    for (int i = 0; i < size; i++)
+    {
+        *word_m[i] = word[i];
+    }
+
+    *word_m[size] = '\0';
 }
 
 int main()
 {
-    int x;
-    char *entra;
-    get2(&x);
+    char *word_m;
 
-    get(&entra);
-    printf("%s\n", entra);
+    read(&word_m);
+
+    printf("Impressao: %s\n", word_m);
 }

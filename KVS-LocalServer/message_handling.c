@@ -96,7 +96,6 @@ int msg_received_put(Client *client, Message *msg)
     {
         return (-1);
     }
-    // TO DO: ERROS -> return negative
 
     return (1); //success
 }
@@ -113,7 +112,7 @@ int msg_received_get(Client *client, Message *msg)
     // If value == NULL, not found, else it is found and sent to client
     if (value == NULL)
     {
-        msg2.messageID = -1;
+        msg2.messageID = ERROR_VALUE_NOT_FOUND;
         msg2.firstArg = NULL;
         msg2.secondArg = NULL;
         //to do: value not found
@@ -129,7 +128,6 @@ int msg_received_get(Client *client, Message *msg)
     {
         return (-1);
     }
-    // TO DO: ERROS -> return negative
 
     return (1); //success
 }
@@ -152,7 +150,7 @@ int msg_received_delete(Client *client, Message *msg)
     else
     {
         // value not found
-        msg2.messageID = -1; 
+        msg2.messageID = ERROR_VALUE_NOT_FOUND; 
         msg2.firstArg = NULL;
         msg2.secondArg = NULL;
     }

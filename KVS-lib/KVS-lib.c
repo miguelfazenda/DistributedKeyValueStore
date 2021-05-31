@@ -21,14 +21,14 @@ int establish_connection (const char * group_id, const char * secret)
     sock = socket(AF_UNIX, SOCK_STREAM, 0);
     if (sock == -1)
     {
-        exit(-1);
+        exit(ERROR_FAILED_AUTHENTICATION);
     }
 
     sock_addr.sun_family = AF_UNIX;
     strcpy(sock_addr.sun_path, SOCKET_ADDR);
 
     if(bind(sock, (struct sockaddr*)&sock_addr, sizeof(sock_addr)) == -1){
-        exit(-1);
+        exit(ERROR_FAILED_AUTHENTICATION);
     }
 
     struct sockaddr_un server_address;
@@ -38,8 +38,7 @@ int establish_connection (const char * group_id, const char * secret)
     //Connects to the server
     if(connect(sock, (struct sockaddr*)&server_address, sizeof(server_address)))
     {
-        printf("connection with the server failed D:\n");
-        exit(0);
+        exit(ERROR_FAILED_AUTHENTICATION);
     }
 
 
@@ -52,20 +51,15 @@ int establish_connection (const char * group_id, const char * secret)
     msg.secondArg = (char*) secret;
     if(send_message(sock, msg) == -1)
     {
-        return(-1); // to do: erros
+        return(ERROR_SENDING); 
     }
-    
-    /*char buf[100];
-    recv(sock, buf, 100, 0);
-
-    printf("buf: %s\n", buf);*/
 
     //Receive response from server
     if(receive_message(sock, &msg) == -1 )
     {
-        return(-1); // to do: erros
+        return(ERROR_RECEIVING); 
     }
-    
+
     if(msg.messageID == MSG_OKAY)
     {
         return(0);
@@ -86,15 +80,16 @@ int put_value(char* key, char* value)
     printf("put_value: key: %s\n", msg.firstArg);
     printf("put_value: value: %s\n", msg.secondArg);
 
+    //Send message to server
     if(send_message(sock, msg) == -1)
     {
-        return(-1); //to do: erros
+        return(ERROR_SENDING); 
     }
 
     //Receive response from server
     if(receive_message(sock, &msg) == -1 )
     {
-        return(-1); // to do: erros
+        return(ERROR_RECEIVING); 
     }
     
     if(msg.messageID == MSG_OKAY)
@@ -116,13 +111,13 @@ int get_value(char* key, char** value)
 
     if(send_message(sock, msg) == -1)
     {
-        return(-1); //to do: erros
+        return(ERROR_SENDING); //to do: erros
     }
 
     //Receive response from server
     if(receive_message(sock, &msg) == -1 )
     {
-        return(-1); // to do: erros
+        return(ERROR_RECEIVING); // to do: erros
     }
 
     if(msg.messageID == MSG_OKAY)
@@ -146,13 +141,13 @@ int delete_value(char* key)
 
     if(send_message(sock, msg) == -1)
     {
-        return(-1); //to do: erros
+        return(ERROR_SENDING); 
     }
 
     //Receive response from server
     if(receive_message(sock, &msg) == -1 )
     {
-        return(-1); // to do: erros
+        return(ERROR_RECEIVING); 
     }
 
     if(msg.messageID == MSG_OKAY)

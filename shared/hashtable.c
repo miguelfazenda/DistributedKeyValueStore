@@ -116,7 +116,7 @@ int table_delete(HashTable *table, char *key)
     //If itemPos doen't point to NULL, advance in the list
     while (*itemPos != NULL)
     {
-        if (strcmp((*itemPos)->key, key))
+        if (strcmp((*itemPos)->key, key) == 0)
         {
             //Found the correct list entry, delete it
             free((*itemPos)->key);

@@ -23,6 +23,14 @@ const char *get_error_code_string(int8_t code, const char *generic_error)
         return "Wrong secret!";
     else if (code == ERROR_AUTH_GROUP_NOT_PRESENT)
         return "Group not present in the server!";
+    else if(code == ERROR_FAILED_AUTHENTICATION)
+        return "Failed authentication.";
+    else if(code == ERROR_SENDING)
+        return "Failed sending information to server.";
+    else if(code == ERROR_RECEIVING)
+        return "Failed receiving information from server.";
+    else if(code == ERROR_VALUE_NOT_FOUND)
+        return "Value not found.";
 
     return generic_error;
 }
@@ -86,8 +94,8 @@ void read_terminal(char *word)
 
 int login_m()
 {
-    char first_arg[100];
-    char second_arg[100];
+    char first_arg[100], second_arg[100], error[100];
+    int out = 0;
 
     printf("Enter group ID: ");
     read_terminal(first_arg);
@@ -97,18 +105,23 @@ int login_m()
     printf("Enter secret: ");
     read_terminal(second_arg);
 
-    if (establish_connection(first_arg, second_arg) == 0)
+    if ((out = establish_connection(first_arg, second_arg)) == 0)
     {
         printf("Connection established.\n");
         return (1);
     }
-    return (0);
+    else
+    {
+        printf("Error login: %s\n", get_error_code_string(out, error));
+        return (0);
+    }
+    
 }
 
 void insert_m()
 {
-    char first_arg[100];
-    char second_arg[100];
+    char first_arg[100], second_arg[100], error[100];
+    int out;
 
     printf("Enter key: ");
     read_terminal(first_arg);
@@ -116,49 +129,51 @@ void insert_m()
     printf("Enter value: ");
     read_terminal(second_arg);
 
-    if ((put_value(first_arg, second_arg)) == 1)
+    if ((out = put_value(first_arg, second_arg)) == 1)
     {
         printf("Successful insert!\n");
     }
     else
     {
-        printf("Error insert!\n");
+        printf("Error inserting value: %s\n", get_error_code_string(out, error));
     }
 }
 
 void get_m()
 {
-    char first_arg[100];
+    char first_arg[100], error[100];
+    int out;
     char *value;
 
     printf("Enter key: ");
     read_terminal(first_arg);
 
-    if ((get_value(first_arg, &value)) == 1)
+    if ((out = get_value(first_arg, &value)) == 1)
     {
         printf("Key inserted: %s. Value delivered: %s\n", first_arg, value);
         free(value);
     }
     else
     {
-        printf("Error finding the value!\n");
+        printf("Error getting the value: %s\n", get_error_code_string(out, error));
     }
 }
 
 void delete_m()
 {
-    char first_arg[100];
+    char first_arg[100], error[100];
+    int out;
 
     printf("Enter key: ");
     read_terminal(first_arg);
 
-    if ((delete_value(first_arg)) == 1)
+    if ((out = delete_value(first_arg)) == 1)
     {
         printf("Successfully deleted\n");
     }
     else
     {
-        printf("Error deleting the value!\n");
+        printf("Error deleting the value: %s\n", get_error_code_string(out, error));
     }
 }
 
