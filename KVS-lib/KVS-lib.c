@@ -239,10 +239,10 @@ int register_callback(char *key, void (*callback_function)(char *))
     {
         return (ERROR_RECEIVING);
     }
-
-    //Inserts the key and callback function in the table
+    
     if (msg.messageID == MSG_OKAY)
     {
+        //Inserts the key and callback function in the table
         table_insert(&CallbackTable, key, (void *)callback_function);
         return (1);
     }
@@ -276,3 +276,22 @@ int close_connection()
     return -1;
 }
 
+void receive_callback_routine()
+{
+    Message* msg;
+
+    while(1)
+    {
+        if(receive_message(sock_callback, &msg) != 1 )
+        {
+            return(ERROR_RECEIVING);
+        }
+
+        if(msg->messageID == MSG_CALLBACK)
+        {
+            printf("Debug: recebido callback de %s\n", msg->firstArg);
+            void (*callback_function)(char *) = table_get(&CallbackTable, msg->firstArg);
+            callback_function(msg->firstArg);
+        }
+    }
+}
