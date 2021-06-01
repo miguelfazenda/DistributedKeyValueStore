@@ -19,7 +19,7 @@
     };*/
 
 void generate_random_session_id(char *str);
-void value_for_key_modified(char* key);
+void value_for_key_modified(char* key, char* group_id);
 
 int msg_received_login(Client *client, Message *msg)
 {
@@ -124,7 +124,7 @@ int msg_received_put(Client *client, Message *msg)
 
         //Inserts the value in the table
         table_insert(group, msg->firstArg, strdup(msg->secondArg));
-        value_for_key_modified(msg->firstArg);
+        value_for_key_modified(msg->firstArg, client->group_id);
 
         msg2.messageID = MSG_OKAY;
     }
@@ -198,7 +198,7 @@ int msg_received_delete(Client *client, Message *msg)
         // If value == NULL, not found, else it is found and sent to client
         if (group != NULL && table_delete(group, msg->firstArg) == 0) //successfully deleted
         {
-            value_for_key_modified(msg->firstArg);
+            value_for_key_modified(msg->firstArg, client->group_id);
             msg2.messageID = MSG_OKAY;
             msg2.firstArg = NULL;
             msg2.secondArg = NULL;
@@ -232,6 +232,7 @@ int msg_received_register_callback(Client *client, Message *msg)
 
     /* Add the client to a list on the hashtable value for that key  */
 
+    pthread_mutex_lock(&clients_with_callback_by_key_mtx);
     //First, get the existing list of clients w/ callback for that key
     Client_List_Item* list = (Client_List_Item*)table_get(&clients_with_callback_by_key, key);
     if(list == NULL)
@@ -246,7 +247,8 @@ int msg_received_register_callback(Client *client, Message *msg)
             list = list->next;
 
         list->next = item;
-    }    
+    }
+    pthread_mutex_unlock(&clients_with_callback_by_key_mtx);
 
     //Send to the client it was successfuly registered
     Message msg2 = { .messageID = MSG_OKAY, .firstArg = NULL, .secondArg = NULL };
@@ -262,12 +264,35 @@ int msg_received_register_callback(Client *client, Message *msg)
  * @brief  Send callback messages to any client that is interested in it
  * @note   
  * @param  key: 
+ * @param  group_id:
  * @retval None
  */
-void value_for_key_modified(char* key)
+void value_for_key_modified(char* key, char* group_id)
 {
     printf("TODO: notify clients this key has changed");
     //clients_with_callback_by_key
+
+    pthread_mutex_lock(&clients_with_callback_by_key_mtx);
+
+    //Get a list of clients for a callback for that key
+    Client_List_Item* client = (Client_List_Item*)table_get(&clients_with_callback_by_key, key);
+    while(client != NULL)
+    {
+        //Check if the client is of the group the key was changed
+        if(strcmp(client->client->group_id, group_id) == 0)
+        {
+            //Send a MSG_CALLBACK to the client with the key that changed
+            //TODO trancar mutex do cliente? 
+            //TODO nota: já tranco o clients_with_callback_by_key_mtx, portanto ACHO que mais nenhuma thread vai mexer no client->callback_sock_fd
+            Message msg = { .messageID = MSG_CALLBACK, .firstArg = key, .secondArg = NULL };
+            send_message(client->client->callback_sock_fd, msg);
+
+            client = client->next;
+
+        }
+    }
+
+    pthread_mutex_unlock(&clients_with_callback_by_key_mtx);
 }
 
 /**
