@@ -1,4 +1,3 @@
-#include "../shared/message.h"
 #include "KVS-lib.h"
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -12,24 +11,26 @@
 
 int establish_connection(const char *group_id, const char *secret)
 {
+    sock_callback = 0;
+
     struct sockaddr_un sock_addr;
 
-    char SOCKET_ADDR[100];
-    sprintf(SOCKET_ADDR, "/tmp/client_sock_%d", getpid());
-    remove(SOCKET_ADDR);
+    char socket_addr[100];
+    sprintf(socket_addr, "/tmp/client_sock_%d", getpid());
+    remove(socket_addr);
 
     sock = socket(AF_UNIX, SOCK_STREAM, 0);
     if (sock == -1)
     {
-        exit(ERROR_FAILED_CONNECTING);
+        return(ERROR_FAILED_CONNECTING);
     }
 
     sock_addr.sun_family = AF_UNIX;
-    strcpy(sock_addr.sun_path, SOCKET_ADDR);
+    strcpy(sock_addr.sun_path, socket_addr);
 
     if (bind(sock, (struct sockaddr *)&sock_addr, sizeof(sock_addr)) == -1)
     {
-        exit(ERROR_FAILED_CONNECTING);
+        return(ERROR_FAILED_CONNECTING);
     }
 
     struct sockaddr_un server_address;
@@ -39,7 +40,7 @@ int establish_connection(const char *group_id, const char *secret)
     //Connects to the server
     if (connect(sock, (struct sockaddr *)&server_address, sizeof(server_address)))
     {
-        exit(ERROR_FAILED_CONNECTING);
+        return(ERROR_FAILED_CONNECTING);
     }
 
     //Está conectado
@@ -60,12 +61,15 @@ int establish_connection(const char *group_id, const char *secret)
         return (ERROR_RECEIVING);
     }
 
+    // If login successful
     if (msg.messageID == MSG_OKAY)
     {
-        return (0);
-
         // Create table for callback keys/functions
         CallbackTable = table_create(NULL);
+
+        // Get the session ID
+        strcpy(session_id, msg.firstArg);
+        return (0);
     }
     else
     {
@@ -165,6 +169,61 @@ int delete_value(char *key)
 int register_callback(char *key, void (*callback_function)(char *))
 {
     Message msg;
+    //Cirar o socket se ele ainda nao tier sido criado e conectar ao servidor
+    if (sock_callback == 0)
+    {
+        struct sockaddr_un sock_addr;
+
+        char socket_addr[100];
+        sprintf(socket_addr, "/tmp/client_sock_%d_callback", getpid());
+        remove(socket_addr);
+
+        sock_callback = socket(AF_UNIX, SOCK_STREAM, 0);
+        if (sock_callback == -1)
+        {
+            sock_callback = 0;
+            return(ERROR_FAILED_CONNECTING);
+        }
+
+        sock_addr.sun_family = AF_UNIX;
+        strcpy(sock_addr.sun_path, socket_addr);
+
+        if (bind(sock_callback, (struct sockaddr *)&sock_addr, sizeof(sock_addr)) == -1)
+        {
+            close(sock_callback);
+            sock_callback = 0;
+            return(ERROR_FAILED_CONNECTING);
+        }
+
+        struct sockaddr_un server_address;
+        server_address.sun_family = AF_UNIX;
+        strcpy(server_address.sun_path, SERVER_ADDRESS);
+
+        //Connects to the server
+        if (connect(sock_callback, (struct sockaddr *)&server_address, sizeof(server_address)))
+        {
+            close(sock_callback);
+            sock_callback = 0;
+            return(ERROR_FAILED_CONNECTING);
+        }
+
+        //Send session ID to server
+        send(sock_callback, session_id, SESSION_ID_STR_SIZE, 0);
+
+        uint8_t ok = 0;
+        //Receive confirmation
+        recv(sock_callback, &ok, sizeof(ok), 0);
+            
+        if(ok != 1)
+        {
+            close(sock_callback);
+            sock_callback = 0;
+            return(ERROR_FAILED_CONNECTING);
+        }
+
+        //Abrir um thread, que vai ter uma rotina que só corre receive_message.
+    }
+
     msg.messageID = MSG_REGISTER_CALLBACK;
     msg.firstArg = key;
     msg.secondArg = NULL;
@@ -184,12 +243,12 @@ int register_callback(char *key, void (*callback_function)(char *))
     //Inserts the key and callback function in the table
     if (msg.messageID == MSG_OKAY)
     {
-        table_insert(&CallbackTable, key, callback_function);
-        return(1);
+        table_insert(&CallbackTable, key, (void *)callback_function);
+        return (1);
     }
     else
     {
-        return(msg.messageID);
+        return (msg.messageID);
     }
 }
 
@@ -212,5 +271,8 @@ int close_connection()
         return 1;
     }
 
+    //TODO close sock_callback if opened
+
     return -1;
 }
+

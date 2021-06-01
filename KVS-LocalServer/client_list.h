@@ -4,6 +4,8 @@
 #include <stdbool.h>
 #include <pthread.h>
 
+#include "../shared/message.h"
+
 typedef struct Client_struct
 {
     int sockFD;
@@ -12,6 +14,8 @@ typedef struct Client_struct
 
     //Used when the client registers a callback
     int callback_sock_fd;
+
+    char session_id[SESSION_ID_STR_SIZE];
 
     //If group_id is NULL, the client isn't logged in yet
     char* group_id;

@@ -283,6 +283,7 @@ void client_connected(int clientFD)
     client->connected = true;
     client->time_connected = time(NULL);
     client->time_disconnected = 0;
+    client->callback_sock_fd = 0;
 
     client_list_add(&connected_clients, client);
 
@@ -305,6 +306,9 @@ void disconnect_client(Client* client)
     //On closing the socket, the receive_message will fail, and 
     close(client->sockFD);
     client->sockFD = 0;
+
+    if(client->callback_sock_fd != 0)
+        close(client->callback_sock_fd);
 }
 
 
@@ -417,9 +421,42 @@ void* run_callback_sock_accept(__attribute__((unused)) void* a)
         {
             printf("A new client callback socket has connected\n");
 
-            //TODO guardar este client_callback_sock_fd dentro de um client->callback_sock_fd.
-            // Para isso talvez associar um numero a cada cliente (por exemplo rand(), ou mesmo o PID maybe), e esperar que o gajo envie neste socket essa mensagem
-            close(client_callback_sock_fd);
+            //Waits for the client to send it's session_id. 
+            //TODO put this in a thread, and also set a timeout for this recv 
+            char session_id[SESSION_ID_STR_SIZE];
+            recv(client_callback_sock_fd, session_id, SESSION_ID_STR_SIZE, 0);
+
+            uint8_t client_with_session_id_found = 0;
+
+            //Find which client corresponds to this socket
+            //Lock mutex
+            //TODO ver se realmente é preciso Lock mutex, porque aqui so lemos a lista. No max é o client->next que muda, porque nao removemos nada da lista??
+            pthread_mutex_lock(&connected_clients.mtx_client_list);
+
+            Client* client = connected_clients.client_list;
+            while(client != NULL)
+            {
+                if(client->connected)
+                {
+                    //Compare each client's session_id with the one we just received.
+                    if(strcmp(session_id, client->session_id) == 0)
+                    {
+                        //Client with that session_id found!
+                        client->callback_sock_fd = client_callback_sock_fd;
+                        client_with_session_id_found = 1;
+                        break;
+                    }
+                }
+
+                client = client->next;
+            }
+
+            //Unlock mutex
+            //TODO ver se realmente é preciso Lock mutex, porque aqui so lemos a lista. No max é o client->next que muda, porque nao removemos nada da lista??
+            pthread_mutex_unlock(&connected_clients.mtx_client_list);
+
+            //Tell the client we received the session_id! Send 1 if we associated with the right client, 0 if we couldn't find
+            send(client_callback_sock_fd, &client_with_session_id_found, sizeof(client_with_session_id_found), 0);
         }
     }
 

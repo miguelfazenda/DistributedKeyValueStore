@@ -5,6 +5,10 @@ TODO:
 
     Testar cliente sem ter feito login interagir
 
+    Ver se tenho de meter um mutex dentro do client. A thread do client usa a estrutura. Mas outras thread podem usar o socket do callback, por exemplo. Ou ver o disconnect client
+
+    Ganhar juizo 
+    
     Se enviar uma string grande no insert, o recv do receive_message sai separado
         testar com insert a ffddklasdfjakjfdlaskjfwiopkjlvmdfsjipgnriunaskjdfs, jksdfjksdfjklsdfajksdfjkldsfjkldfskjfsdgjkdfgsjhfgdshjdfgsjhsdfgjhfgsdhjjhksfgjhksdfjkfhsgjkfghdjkfghsjkghsdghjfsd
         https://stackoverflow.com/questions/4336612/handling-multiple-recv-calls-and-all-possible-scenarios

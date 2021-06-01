@@ -10,6 +10,7 @@ int login_m();
 void get_m();
 void delete_m();
 void insert_m();
+void callback_m();
 
 //TODO Tirar isto daqui
 /**

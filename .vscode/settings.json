@@ -9,6 +9,10 @@
         "auth.h": "c",
         "un.h": "c",
         "message.h": "c",
-        "sstream": "c"
+        "sstream": "c",
+        "array": "c",
+        "string_view": "c",
+        "initializer_list": "c",
+        "utility": "c"
     }
 }

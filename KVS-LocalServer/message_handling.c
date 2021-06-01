@@ -18,6 +18,9 @@
         NULL
     };*/
 
+void generate_random_session_id(char *str);
+void value_for_key_modified(char* key);
+
 int msg_received_login(Client *client, Message *msg)
 {
     //Copy the group id from the message argument
@@ -54,6 +57,7 @@ int msg_received_login(Client *client, Message *msg)
     }
     
     int8_t response_message_id = MSG_OKAY;
+    char session_id[SESSION_ID_STR_SIZE];
 
     if(!login_success)
     {
@@ -66,11 +70,22 @@ int msg_received_login(Client *client, Message *msg)
     msg2.messageID = response_message_id;
     msg2.firstArg = NULL;
     msg2.secondArg = NULL;
+
+    if(login_success)
+    {
+        //Login OK, send session_id
+        generate_random_session_id(session_id);
+        msg2.firstArg = session_id;
+        
+        strcpy(client->session_id, session_id);        
+    }
+
     if (send_message(client->sockFD, msg2) == -1)
     {
         return (-1);
     }
 
+    //TODO disconectar?
     /*if(wrong_secret)
     {
         client->stay_connected = 0;
@@ -109,6 +124,7 @@ int msg_received_put(Client *client, Message *msg)
 
         //Inserts the value in the table
         table_insert(group, msg->firstArg, strdup(msg->secondArg));
+        value_for_key_modified(msg->firstArg);
 
         msg2.messageID = MSG_OKAY;
     }
@@ -182,6 +198,7 @@ int msg_received_delete(Client *client, Message *msg)
         // If value == NULL, not found, else it is found and sent to client
         if (group != NULL && table_delete(group, msg->firstArg) == 0) //successfully deleted
         {
+            value_for_key_modified(msg->firstArg);
             msg2.messageID = MSG_OKAY;
             msg2.firstArg = NULL;
             msg2.secondArg = NULL;
@@ -239,4 +256,34 @@ int msg_received_register_callback(Client *client, Message *msg)
     }
 
     return 1;
+}
+
+/**
+ * @brief  Send callback messages to any client that is interested in it
+ * @note   
+ * @param  key: 
+ * @retval None
+ */
+void value_for_key_modified(char* key)
+{
+    printf("TODO: notify clients this key has changed");
+    //clients_with_callback_by_key
+}
+
+/**
+ * @brief  Generates a random session_id for a client. This is used to identify when it want's to establish a connection
+ *          with the callback socket
+ * @note   
+ * @param  *str: a prealocated string of size SESSION_ID_STR_SIZE where the value is written to
+ * @retval None
+ */
+void generate_random_session_id(char *str)
+{
+    const char charset[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ123456789!#$&/()=}][{";
+
+    for (size_t n = 0; n < SESSION_ID_STR_SIZE-1; n++) {
+        int key = rand() % (int) (sizeof(charset) - 1);
+        str[n] = charset[key];
+    }
+    str[SESSION_ID_STR_SIZE-1] = '\0';
 }
