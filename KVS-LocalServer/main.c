@@ -142,6 +142,9 @@ int main(void)
     //Wait for server thread to stop
     //pthread_join(server_thread, NULL);
 
+    //TODO table_free(groups_table);
+    //TODO pthread_mutex_lock(&clients_with_callback_by_key_mtx); table_free(clients_with_callback_by_key); pthread_mutex_unlock(&clients_with_callback_by_key_mtx);
+
     return 1;
 }
 
