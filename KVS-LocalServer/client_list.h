@@ -10,6 +10,9 @@ typedef struct Client_struct
     pthread_t thread;
     bool stay_connected;
 
+    //Used when the client registers a callback
+    int callback_sock_fd;
+
     //If group_id is NULL, the client isn't logged in yet
     char* group_id;
 

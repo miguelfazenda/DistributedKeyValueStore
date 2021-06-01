@@ -165,7 +165,7 @@ int delete_value(char *key)
 int register_callback(char *key, void (*callback_function)(char *))
 {
     Message msg;
-    msg.messageID = MSG_CALLBACK;
+    msg.messageID = MSG_REGISTER_CALLBACK;
     msg.firstArg = key;
     msg.secondArg = NULL;
 
