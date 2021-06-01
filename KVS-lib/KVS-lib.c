@@ -1,7 +1,8 @@
 #include "KVS-lib.h"
+
+#include <sys/un.h>
 #include <sys/types.h>
 #include <sys/socket.h>
-#include <sys/un.h>
 #include <stdio.h>
 #include <pthread.h>
 #include <stdlib.h>
@@ -9,11 +10,32 @@
 #include <pthread.h>
 #include <errno.h>
 
+#include "../shared/hashtable.h"
+#include "../shared/message.h"
+
+HashTable CallbackTable;
+int client_session_number;
+
+int sock;
+int sock_callback;
+pthread_t thread_sock_callback;
+
+struct sockaddr_un server_address;
+struct sockaddr_un server_callback_address;
+
+struct sockaddr_un sock_addr;
+struct sockaddr_un sock_callback_addr;
+
+//This is a random str that the server sends when login is successful.
+//It is used when we want to connect to the callback socket, so that the
+// server identifies it's us.
+char session_id[SESSION_ID_STR_SIZE];
+
+void* receive_callback_routine(void* in);
+
 int establish_connection(const char *group_id, const char *secret)
 {
     sock_callback = 0;
-
-    struct sockaddr_un sock_addr;
 
     char socket_addr[100];
     sprintf(socket_addr, "/tmp/client_sock_%d", getpid());
@@ -33,7 +55,6 @@ int establish_connection(const char *group_id, const char *secret)
         return(ERROR_FAILED_CONNECTING);
     }
 
-    struct sockaddr_un server_address;
     server_address.sun_family = AF_UNIX;
     strcpy(server_address.sun_path, SERVER_ADDRESS);
 
@@ -172,8 +193,6 @@ int register_callback(char *key, void (*callback_function)(char *))
     //Cirar o socket se ele ainda nao tier sido criado e conectar ao servidor
     if (sock_callback == 0)
     {
-        struct sockaddr_un sock_addr;
-
         char socket_addr[100];
         sprintf(socket_addr, "/tmp/client_sock_%d_callback", getpid());
         remove(socket_addr);
@@ -185,22 +204,22 @@ int register_callback(char *key, void (*callback_function)(char *))
             return(ERROR_FAILED_CONNECTING);
         }
 
-        sock_addr.sun_family = AF_UNIX;
-        strcpy(sock_addr.sun_path, socket_addr);
+        sock_callback_addr.sun_family = AF_UNIX;
+        strcpy(sock_callback_addr.sun_path, socket_addr);
 
-        if (bind(sock_callback, (struct sockaddr *)&sock_addr, sizeof(sock_addr)) == -1)
+        if (bind(sock_callback, (struct sockaddr *)&sock_callback_addr, sizeof(sock_callback_addr)) == -1)
         {
             close(sock_callback);
             sock_callback = 0;
             return(ERROR_FAILED_CONNECTING);
         }
 
-        struct sockaddr_un server_address;
-        server_address.sun_family = AF_UNIX;
-        strcpy(server_address.sun_path, SERVER_ADDRESS);
+        
+        server_callback_address.sun_family = AF_UNIX;
+        strcpy(server_callback_address.sun_path, SERVER_CALLBACK_ADDRESS);
 
         //Connects to the server
-        if (connect(sock_callback, (struct sockaddr *)&server_address, sizeof(server_address)))
+        if (connect(sock_callback, (struct sockaddr *)&server_callback_address, sizeof(server_callback_address)))
         {
             close(sock_callback);
             sock_callback = 0;
@@ -222,6 +241,7 @@ int register_callback(char *key, void (*callback_function)(char *))
         }
 
         //Abrir um thread, que vai ter uma rotina que só corre receive_message.
+        pthread_create(&thread_sock_callback, NULL, receive_callback_routine, NULL);
     }
 
     msg.messageID = MSG_REGISTER_CALLBACK;
@@ -264,6 +284,16 @@ int close_connection()
 
         //Close the socket
         close(sock);
+        sock = 0;
+
+        if(sock_callback != 0)
+        {
+            close(sock_callback);
+            pthread_join(thread_sock_callback, NULL);
+        }
+        sock_callback = 0;
+
+        
 
         //Free the callback table
         table_free(&CallbackTable);
@@ -276,22 +306,23 @@ int close_connection()
     return -1;
 }
 
-void receive_callback_routine()
+void* receive_callback_routine(__attribute__((unused)) void* in)
 {
-    Message* msg;
+    Message msg;
 
     while(1)
     {
-        if(receive_message(sock_callback, &msg) != 1 )
+        if(receive_message(sock_callback, &msg) != 1)
         {
-            return(ERROR_RECEIVING);
+            printf("Receive from callback socket failed\n");
+            return NULL;
         }
 
-        if(msg->messageID == MSG_CALLBACK)
+        if(msg.messageID == MSG_CALLBACK)
         {
-            printf("Debug: recebido callback de %s\n", msg->firstArg);
-            void (*callback_function)(char *) = table_get(&CallbackTable, msg->firstArg);
-            callback_function(msg->firstArg);
+            printf("Debug: recebido callback de %s\n", msg.firstArg);
+            void (*callback_function)(char *) = table_get(&CallbackTable, msg.firstArg);
+            callback_function(msg.firstArg);
         }
     }
 }

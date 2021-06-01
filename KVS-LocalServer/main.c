@@ -30,6 +30,7 @@ int listen_callback_sock;
 bool quitting = false;
 
 void* run_server(void* a);
+void* run_callback_sock_accept(void* a);
 void* thread_client_routine(void* in);
 void client_connected(int clientFD);
 void disconnect_client(Client* client);
@@ -54,39 +55,13 @@ int main(void)
     printf("ab -> pointer: %p\n", table_get(&groups_table, "ab"));
     printf("ab -> pointer: %p\n", table_get(&groups_table, "bbbb"));*/
 
-    printf("Welcome! Here are the commands for your operations:\n____________________\n");
-    printf("create group: 'create'\ndelete group:'delete'\nshow group info:'show group'\n");
-    printf("show application status: 'show app'\n");
-    printf("____________________\n\n");
+    
 
     if(auth_create_socket("127.0.0.1", 25565) != 1)
     {
         printf("Error creating the auth connection socket\n");
     }
 
-    while(1)
-    {
-        // Read operation from terminal
-        printf("Enter operation: \n");
-        read_terminal(operation);
-
-        if(strcmp(operation, "create")==0)
-        {
-            
-        }
-        else if(strcmp(operation, "delete")==0)
-        {
-
-        }
-        else if(strcmp(operation, "show group")==0)
-        {
-
-        }
-        else if(strcmp(operation, "show app")==0)
-        {
-
-        }
-    }
     //TODO - remove this, Cria o grupo para testar
     int status_create_group = auth_create_group("a", "b");
     if(status_create_group == 1)
@@ -114,23 +89,34 @@ int main(void)
 
 
     //Terminal reading
-    printf("TODO: CENAS DE LER O TECLADO\n");
+    printf("Welcome! Here are the commands for your operations:\n____________________\n");
+    printf("create group: 'create'\ndelete group:'delete'\nshow group info:'show group'\nquit\n");
+    printf("show application status: 'show app'\n");
+    printf("____________________\n\n");
     
     while(!quitting)
     {
-        char term[100];
-        fgets(term, 100, stdin);        
+        // Read operation from terminal
+        printf("Enter operation: \n");
+        read_terminal(operation);
 
-        //Remove \n
-        size_t term_length = strlen(term);
-        if(term_length > 0)
+        if(strcmp(operation, "create")==0)
         {
-            char* new_line_pos = &term[strlen(term)-1];
-            if(*new_line_pos == '\n')
-                *new_line_pos = '\0';
+            
         }
+        else if(strcmp(operation, "delete")==0)
+        {
 
-        if(strcmp((const char*)term, "quit") == 0)
+        }
+        else if(strcmp(operation, "show group")==0)
+        {
+
+        }
+        else if(strcmp(operation, "show app")==0)
+        {
+
+        }
+        else if(strcmp(operation, "quit") == 0)
         {
             quit();
             break;
