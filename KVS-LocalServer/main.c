@@ -17,11 +17,15 @@
 #include "auth.h"
 
 #define SERVER_ADDRESS "/tmp/server"
+#define SERVER_CALLBACK_ADDRESS "/tmp/server_callback"
 
 //Server thread 
 pthread_t server_thread;
+//Server thread accepting callback sockets
+pthread_t server_thread_callbacks;
 //Socket listening to incoming connections
 int listen_sock;
+int listen_callback_sock;
 
 bool quitting = false;
 
@@ -75,6 +79,9 @@ int main(void)
     //Creates a thread to run the server accepting connections
     pthread_create(&server_thread, NULL, run_server, NULL);
 
+    //Creates a thread to run the server accepting connections
+    pthread_create(&server_thread_callbacks, NULL, run_callback_sock_accept, NULL);
+
 
     //Terminal reading
     printf("TODO: CENAS DE LER O TECLADO\n");
@@ -96,13 +103,16 @@ int main(void)
         if(strcmp((const char*)term, "quit") == 0)
         {
             quit();
+            break;
         }
     }
 
+    //We couldn't shutdown the listen_sock running accept,
+    // Therefore we will just exit the program
     //Wait for server thread to stop
     //pthread_join(server_thread, NULL);
 
-    return 0;
+    return 1;
 }
 
 void* thread_client_routine(void* in)
@@ -254,6 +264,7 @@ void disconnect_client(Client* client)
     client->sockFD = 0;
 }
 
+
 void* run_server(__attribute__((unused)) void* a)
 {
     struct sockaddr_un listen_sock_addr;
@@ -296,8 +307,7 @@ void* run_server(__attribute__((unused)) void* a)
 
         if (clientFD < 0)
         {
-            printf("Erro accepting client\n");
-            printf("Error: %s\n", strerror(errno));
+            printf("Erro accepting client: %s\n", strerror(errno));
             exit(-1);
         }
         else
@@ -308,9 +318,72 @@ void* run_server(__attribute__((unused)) void* a)
         }
     }
 
+    //Close the socket
     if(listen_sock != 0)
         close(listen_sock);
     listen_sock = 0;
+
+    return NULL;
+}
+
+void* run_callback_sock_accept(__attribute__((unused)) void* a)
+{
+    struct sockaddr_un listen_callback_sock_addr;
+
+    //Removes the previous socket file
+    remove(SERVER_CALLBACK_ADDRESS);
+
+    //Creates the socket
+    listen_callback_sock = socket(AF_UNIX, SOCK_STREAM, 0);
+    if (listen_callback_sock == -1)
+    {
+        exit(-1);
+    }
+    printf("callback socket created\n");
+
+    //Sets the socket address
+    listen_callback_sock_addr.sun_family = AF_UNIX;
+    strcpy(listen_callback_sock_addr.sun_path, SERVER_CALLBACK_ADDRESS);
+
+    //Binds the socket to the listen address
+    if (bind(listen_callback_sock, (struct sockaddr *)&listen_callback_sock_addr, sizeof(listen_callback_sock_addr)) == -1)
+    {
+        exit(-1);
+    }
+    printf("callback socket binded with an address %s\n", SERVER_CALLBACK_ADDRESS);
+
+    //Listen on that socket for incoming connections
+    if (listen(listen_callback_sock, 5) == -1)
+    {
+        printf("Error listening: %s\n", strerror(errno));
+        exit(-1);
+    }
+
+    while (1)
+    {
+        //Waits and accepts client connections
+        int client_callback_sock_fd = accept(listen_callback_sock, NULL, NULL);
+
+
+        if (client_callback_sock_fd < 0)
+        {
+            printf("Erro accepting client callback socket: %s\n", strerror(errno));
+            exit(-1);
+        }
+        else
+        {
+            printf("A new client callback socket has connected\n");
+
+            //TODO guardar este client_callback_sock_fd dentro de um client->callback_sock_fd.
+            // Para isso talvez associar um numero a cada cliente (por exemplo rand(), ou mesmo o PID maybe), e esperar que o gajo envie neste socket essa mensagem
+            close(client_callback_sock_fd);
+        }
+    }
+
+    //Close the socket
+    if(listen_callback_sock != 0)
+        close(listen_callback_sock);
+    listen_callback_sock = 0;
 
     return NULL;
 }
@@ -335,9 +408,12 @@ void quit(void)
     pthread_mutex_unlock(&connected_clients.mtx_client_list);
 
     //Close listen_sock
-    shutdown(listen_sock, SHUT_RDWR);
+    /*shutdown(listen_sock, SHUT_RDWR);
     close(listen_sock);
     listen_sock = 0;
     //Wait for server thread to stop
-    pthread_join(server_thread, NULL);
+    pthread_join(server_thread, NULL);*/
+
+    //We couldn't shutdown the listen_sock running accept,
+    // Therefore we will just exit the program
 }
