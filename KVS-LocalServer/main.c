@@ -152,14 +152,45 @@ void* thread_client_routine(void* in)
     Client* client = (Client*) in;
     int socketFD = client->sockFD;
 
+    Message msg;
+    int recv_status = receive_message(socketFD, &msg);
+
+    if(msg.messageID == MSG_LOGIN)
+    {
+        if(msg_received_login(client, &msg) == -1)
+        {
+            // Error, disconnect client
+            printf("Error receiving message from client. Disconnecting client\n");
+            client->stay_connected = 0;
+        }
+    }
+    else
+    {
+        printf("Client should have sent a login message!\n");
+        client->stay_connected = 0;
+    }
+
+    //Receives the PID of the client
+    if(recv(client->sockFD, &client->pid, sizeof(pid_t), 0) < (ssize_t)sizeof(pid_t))
+    {
+        // Error, disconnect client
+        printf("Error receiving message from client. Disconnecting client\n");
+        client->stay_connected = 0;
+    }
+
+    if(client->stay_connected)
+    {
+        //Login was successful
+        printf("Client %p logged in successfuly. GroupID: %s, PID: %d\n", (void*)client, client->group_id, client->pid);
+    }
+
+    //While client hasn't disconnected, and login was successful
     while(client->stay_connected)
     {
-        Message msg;
         msg.firstArg = NULL;
         msg.secondArg = NULL;
 
-        int recv_status = receive_message(socketFD, &msg);
-
+        recv_status = receive_message(socketFD, &msg);
         if(recv_status == 1)
         {
             //Received message successfully
@@ -168,15 +199,6 @@ void* thread_client_routine(void* in)
             if(msg.messageID == MSG_PUT)
             {
                 if(msg_received_put(client, &msg) == -1)
-                {
-                    // Error, disconnect client
-                    printf("Error receiving message from client. Disconnecting client\n");
-                    client->stay_connected = 0;
-                }
-            }
-            else if(msg.messageID == MSG_LOGIN)
-            {
-                if(msg_received_login(client, &msg) == -1)
                 {
                     // Error, disconnect client
                     printf("Error receiving message from client. Disconnecting client\n");

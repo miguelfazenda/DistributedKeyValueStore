@@ -90,12 +90,23 @@ int establish_connection(const char *group_id, const char *secret)
 
         // Get the session ID
         strcpy(session_id, msg.firstArg);
+
+        //Send the PID to the server
+        pid_t pid = getpid();
+        if(send(sock, &pid, sizeof(pid_t), 0) < (ssize_t)sizeof(pid))
+        {
+            return(ERROR_SENDING);
+        }
+
         return (0);
     }
     else
     {
+        close(sock);
+        sock = 0;
         return (msg.messageID);
     }
+
 }
 
 int put_value(char *key, char *value)

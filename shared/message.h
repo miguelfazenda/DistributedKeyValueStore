@@ -13,6 +13,7 @@
 #define MSG_CALLBACK 6
 #define MSG_OKAY 7
 #define MSG_DISCONNECT 8
+#define MSG_SEND_PID 9
 
 #define SESSION_ID_STR_SIZE 20 //Including \0
 

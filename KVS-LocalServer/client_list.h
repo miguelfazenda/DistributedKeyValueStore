@@ -24,6 +24,8 @@ typedef struct Client_struct
     time_t time_connected;
     time_t time_disconnected;
 
+    pid_t pid;
+
     struct Client_struct* next;
 } Client;
 
