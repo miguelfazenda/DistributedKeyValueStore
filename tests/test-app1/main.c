@@ -1,16 +1,27 @@
-#include "KVS-lib.h"
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include "../shared/message.h"
-#include "../shared/error_codes.h"
+#include <dlfcn.h>
+#include "../../shared/error_codes.h"
 
 void read_terminal(char *word);
-int login_m();
-void get_m();
-void delete_m();
-void insert_m();
-void callback_m();
+int login_m(void);
+void get_m(void);
+void delete_m(void);
+void insert_m(void);
+void callback_m(void);
+
+void* load_library(void);
+const char *get_error_code_string(int8_t code, const char *generic_error);
+void f1(char *changed_key);
+
+/* declare pointers to functions */
+int (*establish_connection) (const char * group_id, const char * secret);
+int (*put_value)(char * key, char * value);
+int (*get_value)(char * key, char ** value);
+int (*delete_value)(char * key);
+int (*register_callback)(char * key, void (*callback_function)(char *));
+int (*close_connection)(void);
 
 //TODO Tirar isto daqui
 /**
@@ -39,7 +50,9 @@ const char *get_error_code_string(int8_t code, const char *generic_error)
 int main(void)
 {
     char operation[10];
-    char connected = 0;
+    int connected = 0;
+
+    void* handle = load_library();
 
     printf("Welcome! Here are the commands for your operations:\n____________________\n");
     printf("authentication: 'login'\ndisconnect:'quit'\ninsert a new value:'insert'\n");
@@ -94,6 +107,8 @@ int main(void)
     }
 
     close_connection();
+    
+	dlclose(handle);
 
     return 1;
 }
@@ -106,7 +121,7 @@ void read_terminal(char *word)
     }
 }
 
-int login_m()
+int login_m(void)
 {
     char first_arg[100], second_arg[100], error[100];
     int out = 0;
@@ -127,7 +142,7 @@ int login_m()
     }
     else
     {
-        printf("Error login: %s\n", get_error_code_string(out, error));
+        printf("Error login: %s\n", get_error_code_string((int8_t)out, error));
         return (0);
     }
 }
@@ -137,7 +152,7 @@ void f1(char *changed_key)
     printf("The key with name %s was changed\n", changed_key);
 }
 
-void insert_m()
+void insert_m(void)
 {
     char first_arg[100], second_arg[100], error[100];
     int out;
@@ -154,11 +169,11 @@ void insert_m()
     }
     else
     {
-        printf("Error inserting value: %s\n", get_error_code_string(out, error));
+        printf("Error inserting value: %s\n", get_error_code_string((int8_t)out, error));
     }
 }
 
-void get_m()
+void get_m(void)
 {
     char first_arg[100], error[100];
     int out;
@@ -174,11 +189,11 @@ void get_m()
     }
     else
     {
-        printf("Error getting the value: %s\n", get_error_code_string(out, error));
+        printf("Error getting the value: %s\n", get_error_code_string((int8_t)out, error));
     }
 }
 
-void delete_m()
+void delete_m(void)
 {
     char first_arg[100], error[100];
     int out;
@@ -192,11 +207,11 @@ void delete_m()
     }
     else
     {
-        printf("Error deleting the value: %s\n", get_error_code_string(out, error));
+        printf("Error deleting the value: %s\n", get_error_code_string((int8_t)out, error));
     }
 }
 
-void callback_m()
+void callback_m(void)
 {
     char first_arg[100], error[100];
     int out;
@@ -212,6 +227,59 @@ void callback_m()
     }
     else
     {
-        printf("Error registering callback: %s\n", get_error_code_string(out, error));
+        printf("Error registering callback: %s\n", get_error_code_string((int8_t)out, error));
     }
+}
+
+
+
+void* load_library(void)
+{
+    void *handle;
+	char *error;
+
+	/* load library from name library_name */
+	handle = dlopen("../../KVS-lib/KVS-lib.so", RTLD_LAZY);
+	if(!handle)
+	{
+		fputs(dlerror(), stderr);
+		exit(1);
+	}
+
+	establish_connection = dlsym(handle, "establish_connection");
+	if ((error = dlerror()) != NULL)  {
+		fputs(error, stderr);
+		exit(1);
+	}
+
+	put_value = dlsym(handle, "put_value");
+	if ((error = dlerror()) != NULL)  {
+		fputs(error, stderr);
+		exit(1);
+	}
+    get_value = dlsym(handle, "get_value");
+	if ((error = dlerror()) != NULL)  {
+		fputs(error, stderr);
+		exit(1);
+	}
+
+	delete_value = dlsym(handle, "delete_value");
+	if ((error = dlerror()) != NULL)  {
+		fputs(error, stderr);
+		exit(1);
+	}
+    register_callback = dlsym(handle, "register_callback");
+	if ((error = dlerror()) != NULL)  {
+		fputs(error, stderr);
+		exit(1);
+	}
+
+	close_connection = dlsym(handle, "close_connection");
+	if ((error = dlerror()) != NULL)  {
+		fputs(error, stderr);
+		exit(1);
+	}
+    
+
+    return handle;
 }

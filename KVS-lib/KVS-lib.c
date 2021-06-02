@@ -283,7 +283,7 @@ int register_callback(char *key, void (*callback_function)(char *))
     }
 }
 
-int close_connection()
+int close_connection(void)
 {
     if (sock != 0)
     {

@@ -7,6 +7,10 @@ TODO:
 
     Ver se tenho de meter um mutex dentro do client. A thread do client usa a estrutura. Mas outras thread podem usar o socket do callback, por exemplo. Ou ver o disconnect client
 
+    Verificar o recv se veio do auth server
+
+    Fazer testes
+
     Ganhar juizo 
     
     Se enviar uma string grande no insert, o recv do receive_message sai separado
