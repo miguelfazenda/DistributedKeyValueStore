@@ -79,6 +79,7 @@ int establish_connection(const char *group_id, const char *secret)
     //Receive response from server
     if (receive_message(sock, &msg) == -1)
     {
+        free_message(&msg);
         return (ERROR_RECEIVING);
     }
 
@@ -91,6 +92,8 @@ int establish_connection(const char *group_id, const char *secret)
         // Get the session ID
         strcpy(session_id, msg.firstArg);
 
+        free_message(&msg);
+
         //Send the PID to the server
         pid_t pid = getpid();
         if(send(sock, &pid, sizeof(pid_t), 0) < (ssize_t)sizeof(pid))
@@ -102,6 +105,7 @@ int establish_connection(const char *group_id, const char *secret)
     }
     else
     {
+        free_message(&msg);
         close(sock);
         sock = 0;
         return (msg.messageID);
@@ -128,14 +132,17 @@ int put_value(char *key, char *value)
     //Receive response from server
     if (receive_message(sock, &msg) == -1)
     {
+        free_message(&msg);
         return (ERROR_RECEIVING);
     }
 
     if (msg.messageID == MSG_OKAY)
     {
+        free_message(&msg);
         return (1);
     }
 
+    free_message(&msg);
     //If it wasn't MSG_OKAY, then return the error contained in msg.messageID
     return (msg.messageID);
 }
@@ -156,6 +163,7 @@ int get_value(char *key, char **value)
     //Receive response from server
     if (receive_message(sock, &msg) == -1)
     {
+        free_message(&msg);
         return (ERROR_RECEIVING); // to do: erros
     }
 
@@ -164,6 +172,9 @@ int get_value(char *key, char **value)
         printf("Value retrieved: %s\n", msg.secondArg);
         *value = (char *)malloc(sizeof(msg.secondArg));
         strcpy(*value, msg.secondArg);
+
+        free_message(&msg);
+
         return (1);
     }
 
@@ -186,13 +197,17 @@ int delete_value(char *key)
     //Receive response from server
     if (receive_message(sock, &msg) == -1)
     {
+        free_message(&msg);
         return (ERROR_RECEIVING);
     }
 
     if (msg.messageID == MSG_OKAY)
     {
+        free_message(&msg);
         return (1);
     }
+
+    free_message(&msg);
 
     //If it wasn't MSG_OKAY, then return the error contained in msg.messageID
     return (msg.messageID);
@@ -268,6 +283,7 @@ int register_callback(char *key, void (*callback_function)(char *))
     //Receive response from server
     if (receive_message(sock, &msg) == -1)
     {
+        free_message(&msg);
         return (ERROR_RECEIVING);
     }
     
@@ -326,6 +342,7 @@ void* receive_callback_routine(__attribute__((unused)) void* in)
         if(receive_message(sock_callback, &msg) != 1)
         {
             printf("Receive from callback socket failed\n");
+            free_message(&msg);
             return NULL;
         }
 
@@ -335,5 +352,7 @@ void* receive_callback_routine(__attribute__((unused)) void* in)
             void (*callback_function)(char *) = table_get(&CallbackTable, msg.firstArg);
             callback_function(msg.firstArg);
         }
+
+        free_message(&msg);
     }
 }
