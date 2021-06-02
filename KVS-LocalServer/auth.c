@@ -221,9 +221,21 @@ int8_t receive_auth_response(AuthMessage* msg, uint8_t expected_request_number)
     do
     {
         errno = 0;
+
+        struct sockaddr_in sender_address;
+        socklen_t sender_address_size = sizeof(sender_address);
+
         ssize_t n_bytes = recvfrom(auth_sock, &recv_buf, sizeof(AuthMessage), 0,
-                            NULL, NULL);
-            
+                            (struct sockaddr*)&sender_address, &sender_address_size);
+
+        if(n_bytes > 0 &&
+            (sender_address.sin_family != auth_server_address.sin_family || 
+            sender_address.sin_addr.s_addr != auth_server_address.sin_addr.s_addr ||
+            sender_address.sin_port != auth_server_address.sin_port))
+        {
+            printf("Received data on auth socket from an unknown sender! Ignoring\n");
+        }
+
         if(n_bytes < (ssize_t)sizeof(AuthMessage))
         {
             //Error receiving (or received less bytes than expected)
