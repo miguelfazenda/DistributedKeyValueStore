@@ -77,6 +77,7 @@ int8_t auth_create_socket(const char* host_name, uint16_t host_port)
 
 void auth_close_connection(void)
 {
+    pthread_mutex_lock(&mtx_auth);
     close(auth_sock);
     pthread_mutex_destroy(&mtx_auth);
 }
@@ -92,9 +93,15 @@ int8_t auth_send_login(const char* group_id, const char* group_secret)
 {
     AuthMessage response_msg;
 
+    //Locks the mutex
+    pthread_mutex_lock(&mtx_auth);
+
     //Sends the MSG_AUTH_CHECK_LOGIN message, and receives the response from the auth server
     int8_t status = send_auth_message_and_wait_response(
         create_auth_message(MSG_AUTH_CHECK_LOGIN, group_id, group_secret, request_number_counter++), &response_msg);
+
+    //Unlocks the mutex
+    pthread_mutex_unlock(&mtx_auth);
 
     if(status != 1)
         return status;
@@ -111,9 +118,15 @@ int8_t auth_create_group(const char* group_id, const char* group_secret)
 {
     AuthMessage response_msg;
 
+    //Locks the mutex
+    pthread_mutex_lock(&mtx_auth);
+
     //Sends the MSG_AUTH_CREATE_GROUP message, and receives the response from the auth server
     int8_t status = send_auth_message_and_wait_response(
         create_auth_message(MSG_AUTH_CREATE_GROUP, group_id, group_secret, request_number_counter++), &response_msg);
+
+    //Unlocks the mutex
+    pthread_mutex_unlock(&mtx_auth);
 
     if(status != 1)
         return status;
@@ -132,9 +145,15 @@ int8_t auth_get_secret(const char* group_id, char* group_secret)
 {
     AuthMessage response_msg;
 
+    //Locks the mutex
+    pthread_mutex_lock(&mtx_auth);
+
     //Sends the MSG_AUTH_CREATE_GROUP message, and receives the response from the auth server
     int8_t status = send_auth_message_and_wait_response(
         create_auth_message(MSG_AUTH_GET_SECRET, group_id, NULL, request_number_counter++), &response_msg);
+
+    //Unlocks the mutex
+    pthread_mutex_unlock(&mtx_auth);
 
     if(status != 1)
         return status;
@@ -164,9 +183,6 @@ int8_t send_auth_message_and_wait_response(AuthMessage send_msg, AuthMessage* re
 
     int num_tries = 0;
 
-    //Locks the mutex
-    pthread_mutex_lock(&mtx_auth);
-
     //Tries sending up to 3 times, in case it doesn't receive a response in time
     while (num_tries < 3)
     {
@@ -176,7 +192,6 @@ int8_t send_auth_message_and_wait_response(AuthMessage send_msg, AuthMessage* re
         if(status != 1)
         {
             auth_sock_error_occured = true;
-            pthread_mutex_unlock(&mtx_auth);
             return -1;
         }
 
@@ -193,13 +208,9 @@ int8_t send_auth_message_and_wait_response(AuthMessage send_msg, AuthMessage* re
         else if(status == 1)
         {
             //Received the response correcly, exit function and return 1
-            pthread_mutex_unlock(&mtx_auth);
             return 1;
         }
     }
-
-    //Unlocks the mutex
-    pthread_mutex_unlock(&mtx_auth);
     
     //There was an error with the socket receiving
     auth_sock_error_occured = true;
