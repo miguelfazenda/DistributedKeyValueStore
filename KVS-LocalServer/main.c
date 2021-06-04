@@ -100,6 +100,14 @@ int main(void)
         }
         else if (strcmp(operation, "delete") == 0)
         {
+            char group_id[1000];
+
+            // Read group ID
+            printf("Insert group ID to delete: \n");
+            read_terminal(group_id);
+
+            table_delete(&groups_table, group_id);
+            auth_delete_group(group_id);
         }
         else if (strcmp(operation, "group") == 0)
         {
@@ -125,6 +133,7 @@ int main(void)
         }
         else if (strcmp(operation, "status") == 0)
         {
+            //STATUS
             pthread_mutex_lock(&clients.mtx_client_list);
 
             int i = 0;

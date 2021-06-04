@@ -172,6 +172,32 @@ int8_t auth_get_secret(const char* group_id, char* group_secret)
 }
 
 /**
+ * @brief  Sends to the auth server the request to delete a group, and gets the reponse.
+ * @param  group_id: the id of the group
+ * @retval the return code, 1 means success, or ERROR_AUTH_GROUP_NOT_PRESENT
+ */
+int8_t auth_delete_group(const char* group_id)
+{
+    AuthMessage response_msg;
+
+    //Locks the mutex
+    pthread_mutex_lock(&mtx_auth);
+
+    //Sends the MSG_AUTH_CREATE_GROUP message, and receives the response from the auth server
+    int8_t status = send_auth_message_and_wait_response(
+        create_auth_message(MSG_AUTH_DELETE_GROUP, group_id, NULL, request_number_counter++), &response_msg);
+
+    //Unlocks the mutex
+    pthread_mutex_unlock(&mtx_auth);
+
+    if(status != 1)
+        return status;
+
+    int8_t response = response_msg.messageID;
+    return response;
+}
+
+/**
  * @brief  Helper function to send an AuthMessage to the server, and wait for the response
  * @note   
  * @param  send_msg: the message to be sent

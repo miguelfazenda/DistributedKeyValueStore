@@ -28,6 +28,7 @@ void create_server(void);
 void handle_message_login(AuthMessage* msg, struct sockaddr_in sender_sock_addr);
 void handle_message_create_group(AuthMessage* msg, struct sockaddr_in sender_sock_addr);
 void handle_message_get_secret(AuthMessage* msg, struct sockaddr_in sender_sock_addr);
+void handle_message_delete_group(AuthMessage* msg, struct sockaddr_in sender_sock_addr);
 void generate_random_secret(char *str);
 
 int main(void)
@@ -71,6 +72,8 @@ int main(void)
             handle_message_create_group(&msg, sender_sock_addr);
         else if(msg.messageID == MSG_AUTH_GET_SECRET)
             handle_message_get_secret(&msg, sender_sock_addr);
+        else if(msg.messageID == MSG_AUTH_DELETE_GROUP)
+            handle_message_delete_group(&msg, sender_sock_addr);
     }
 
     close(sock);
@@ -194,6 +197,37 @@ void handle_message_get_secret(AuthMessage* msg, struct sockaddr_in sender_sock_
     //Send the response
     send_auth_message(resp_msg, sock, sender_sock_addr);
 }
+
+/**
+ * @brief Deletes a certain group. messageID is 1 for success.
+ *        The group_id is read on the firstArg
+ */
+void handle_message_delete_group(AuthMessage* msg, struct sockaddr_in sender_sock_addr)
+{
+    char* group_id = msg->firstArg;
+    printf("Get secret for group \"%s\"\n", group_id);
+
+    //Delete the stored secret from the table
+    int status = table_delete(&secrets_table, group_id);
+
+    AuthMessage resp_msg = { .messageID = 0, .firstArg = {'\0'}, .secondArg = {'\0'}, .request_number = msg->request_number };
+
+    if(status == -1)
+    {
+        //The table doesn't have a secret for such group
+        resp_msg.messageID = ERROR_AUTH_GROUP_NOT_PRESENT;
+        printf("Secret for groupID %s not present\n", group_id);
+    }
+    else
+    {
+        //There is a stored secret for this group, send 0 or 1 if the secrets match
+        resp_msg.messageID = 1;
+    }
+    
+    //Send the response
+    send_auth_message(resp_msg, sock, sender_sock_addr);
+}
+
 
 /**
  * @brief  Generates a random secret for a group. 
