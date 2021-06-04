@@ -44,7 +44,6 @@ HashTable table_create(void (*free_value_func)(void *))
     return table;
 }
 
-//TODO: Isto nao precisa de enviar o table*, só table
 /**
  * @brief Inserts a value on the hashtable
  * 
@@ -109,7 +108,6 @@ void *table_get(HashTable *table, const char *key)
 // Deletes table. If it exists, is deleted (return 0). If it doesnt exist, return(-1)
 int table_delete(HashTable *table, const char *key)
 {
-    //TODO avisar se não encontrar?
     int index = table_hash_function(key);
 
     //Finds the pointer to the pointer where the first item is stored

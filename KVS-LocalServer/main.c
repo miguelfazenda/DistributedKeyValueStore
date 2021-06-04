@@ -167,6 +167,10 @@ void* thread_client_routine(void* in)
             printf("Error receiving message from client. Disconnecting client\n");
             client->stay_connected = 0;
         }
+
+        if(client->group_id == NULL)
+            //Failed login
+            client->stay_connected = 0;
     }
     else
     {
@@ -463,8 +467,11 @@ void* run_callback_sock_accept(__attribute__((unused)) void* a)
         {
             printf("A new client callback socket has connected\n");
 
+            //Set timeout for socket to receive session_id
+            struct timeval tv = { .tv_sec = 5, .tv_usec = 0 };
+            setsockopt(auth_sock, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof tv);
+
             //Waits for the client to send it's session_id. 
-            //TODO put this in a thread, and also set a timeout for this recv 
             char session_id[SESSION_ID_STR_SIZE];
             recv(client_callback_sock_fd, session_id, SESSION_ID_STR_SIZE, 0);
 
@@ -472,7 +479,6 @@ void* run_callback_sock_accept(__attribute__((unused)) void* a)
 
             //Find which client corresponds to this socket
             //Lock mutex
-            //TODO ver se realmente é preciso Lock mutex, porque aqui so lemos a lista. No max é o client->next que muda, porque nao removemos nada da lista??
             pthread_mutex_lock(&clients.mtx_client_list);
 
             Client* client = clients.client_list;
@@ -494,7 +500,6 @@ void* run_callback_sock_accept(__attribute__((unused)) void* a)
             }
 
             //Unlock mutex
-            //TODO ver se realmente é preciso Lock mutex, porque aqui so lemos a lista. No max é o client->next que muda, porque nao removemos nada da lista??
             pthread_mutex_unlock(&clients.mtx_client_list);
 
             //Tell the client we received the session_id! Send 1 if we associated with the right client, 0 if we couldn't find
@@ -520,9 +525,6 @@ void quit(void)
     Client* client = clients.client_list;
     while(client != NULL)
     {
-        //TODO avisar clientes que o servidor vai desligar. Talvez precise de um mutex, para nao enviar 2 coisas ao mesmo tempo com a outra thread
-        //Na verdade avisar provavlmente nao faz sentido??
-
         if(client->connected)
         {
             //Shutdown the socket and wait for the thread to join

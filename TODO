@@ -16,3 +16,5 @@ TODO:
     Se enviar uma string grande no insert, o recv do receive_message sai separado
         testar com insert a ffddklasdfjakjfdlaskjfwiopkjlvmdfsjipgnriunaskjdfs, jksdfjksdfjklsdfajksdfjkldsfjkldfskjfsdgjkdfgsjhfgdshjdfgsjhsdfgjhfgsdhjjhksfgjhksdfjkfhsgjkfghdjkfghsjkghsdghjfsd
         https://stackoverflow.com/questions/4336612/handling-multiple-recv-calls-and-all-possible-scenarios
+
+//TODO put this in a thread, and also set a timeout for this recv 
