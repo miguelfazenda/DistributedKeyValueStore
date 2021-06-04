@@ -14,6 +14,7 @@
         "string_view": "c",
         "initializer_list": "c",
         "utility": "c",
-        "error_codes.h": "c"
+        "error_codes.h": "c",
+        "globals.h": "c"
     }
 }
