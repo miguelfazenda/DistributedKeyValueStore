@@ -167,6 +167,24 @@ void table_free(HashTable *table)
     }
 }
 
+int table_count_pairs(HashTable* table)
+{
+    int count = 0;
+    TableItem* item;
+
+    for (int i = 0; i < TABLE_SIZE; i++)
+    {
+        item = table->array[i];
+        while(item != NULL)
+        {
+            count++;
+            item = (item)->next;
+        }
+    }
+
+    return(count);
+}
+
 void free_value_str(void *ptr)
 {
     free(ptr);

@@ -38,35 +38,22 @@ void disconnect_client(Client *client);
 void quit(void);
 void read_terminal(char *word);
 const char *get_error_code_string(int8_t code, const char *generic_error);
-int count_pairs();
 
 //TODO criar doc para
 
 int main(void)
 {
-    char operation[100], first_arg[100], second_arg[100];
     groups_table = table_create(free_value_hashtable);
-    /*table_insert(&groups_table, "miguel", "fixe");
-    table_insert(&groups_table, "ab", "ola1");
-    table_insert(&groups_table, "ba", "ola2");
-
-    printf("miguel -> %s\n", (char *)table_get(&groups_table, "miguel"));
-    printf("ab -> %s\n", (char *)table_get(&groups_table, "ab"));
-    printf("ba -> %s\n", (char *)table_get(&groups_table, "ba"));
-
-    table_delete(&groups_table, (void *)"ab");
-
-    //DEvia dar um apontador para NULL, pq removemos o ab
-    printf("ab -> pointer: %p\n", table_get(&groups_table, "ab"));
-    printf("ab -> pointer: %p\n", table_get(&groups_table, "bbbb"));*/
 
     if (auth_create_socket("127.0.0.1", 25565) != 1)
     {
         printf("Error creating the auth connection socket\n");
     }
 
+    srand(time(NULL));
+
     //TODO - remove this, Cria o grupo para testar
-    int status_create_group = auth_create_group("a", "b");
+    /*int status_create_group = auth_create_group("a", "b");
     if (status_create_group == 1)
         printf("Grupo criado com sucesso\n");
     else
@@ -79,7 +66,7 @@ int main(void)
     else if (status_get_secret == ERROR_AUTH_GROUP_NOT_PRESENT)
         printf("Erro grupo nao existente\n");
     else
-        printf("Erro a obter segredo: %d\n", status_create_group);
+        printf("Erro a obter segredo: %d\n", status_create_group);*/
 
     //Creates a thread to run the server accepting connections
     pthread_create(&server_thread, NULL, run_server, NULL);
@@ -89,15 +76,14 @@ int main(void)
 
     //Terminal reading
     printf("Welcome! Here are the commands for your operations:\n____________________\n");
-    printf("create group: 'create'\ndelete group:'delete'\nshow group info:'show group'\nquit\n");
-    printf("show application status: 'show app'\n");
+    printf("create group: 'create'\ndelete group:'delete'\nshow group info:'group'\nquit\n");
+    printf("show application status: 'status'\n");
     printf("____________________\n\n");
 
     while (!quitting)
     {
-        int error;
-
         // Read operation from terminal
+        char operation[100];
         printf("Enter operation: \n");
         read_terminal(operation);
 
@@ -110,21 +96,22 @@ int main(void)
             printf("Insert group ID you want to create:\n");
             read_terminal(group_id);
 
-            // Generate random secret
-            if (error = auth_create_group(group_id, group_secret))
+            // Send command to auth server, and received a generated random secret
+            int8_t status = auth_create_group(group_id, group_secret);
+            if (status == 1)
             {
                 printf("Group created successfully!\nGroup: %s\nSecret: %s\n", group_id, group_secret);
             }
             else
             {
                 //TODO criar doc para o get_error
-                printf("Error creating group: %s\n", get_error_code_string(error, "error"));
+                printf("Error creating group: %s\n", get_error_code_string(status, "error"));
             }
         }
         else if (strcmp(operation, "delete") == 0)
         {
         }
-        else if (strcmp(operation, "show group") == 0)
+        else if (strcmp(operation, "group") == 0)
         {
             char group_id[1000];
             char group_secret[SECRET_SIZE];
@@ -133,16 +120,20 @@ int main(void)
             printf("Insert group ID to know information:\n");
             read_terminal(group_id);
 
-            if (error = auth_get_secret(group_id, group_secret))
+            int8_t status = auth_get_secret(group_id, group_secret);
+            if (status == 1)
             {
-                printf("Secret: %d\nNumbers of pairs key/value:%d\n", group_secret, count_pairs);
+                HashTable* table_of_group = (HashTable*)table_get(&groups_table, group_id);
+                int num_pairs = table_of_group == NULL ? 0 : table_count_pairs(table_of_group);
+
+                printf("Secret: %s\nNumbers of pairs key/value:%d\n", group_secret, num_pairs);
             }
             else
             {
-                printf("Error creating group: %s\n", get_error_code_string(error, "error"));
+                printf("Error getting group info: %s\n", get_error_code_string(status, "error"));
             }
         }
-        else if (strcmp(operation, "show app") == 0)
+        else if (strcmp(operation, "status") == 0)
         {
             
         }
@@ -170,10 +161,6 @@ void read_terminal(char *word)
     {
         printf("Invalid input. Insert again");
     }
-}
-
-void create_group_l()
-{
 }
 
 void *thread_client_routine(void *in)
@@ -555,22 +542,4 @@ const char *get_error_code_string(int8_t code, const char *generic_error)
         return "Value not found.";
 
     return generic_error;
-}
-
-int count_pairs()
-{
-    int count = 0;
-    TableItem* item;
-
-    for (int i = 0; i < TABLE_SIZE; i++)
-    {
-        item = groups_table.array[i];
-        while(item != NULL)
-        {
-            count++;
-            item = (item)->next;
-        }
-    }
-
-    return(count);
 }

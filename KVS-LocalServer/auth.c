@@ -113,12 +113,13 @@ int8_t auth_create_group(const char* group_id, char* group_secret)
 
     //Sends the MSG_AUTH_CREATE_GROUP message, and receives the response from the auth server
     int8_t status = send_auth_message_and_wait_response(
-        create_auth_message(MSG_AUTH_CREATE_GROUP, group_id, group_secret, request_number_counter++), &response_msg);
+        create_auth_message(MSG_AUTH_CREATE_GROUP, group_id, NULL, request_number_counter++), &response_msg);
 
     if(status != 1)
         return status;
 
     int8_t response = response_msg.messageID;
+    //The response contains the group secret
     strcpy(group_secret, response_msg.firstArg);
     return response;
 }
