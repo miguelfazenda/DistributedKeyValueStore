@@ -48,9 +48,10 @@ int main(void)
     if (auth_create_socket("127.0.0.1", 25565) != 1)
     {
         printf("Error creating the auth connection socket\n");
+        exit(-1);
     }
 
-    srand(time(NULL));
+    srand((unsigned int)time(NULL));
 
     //TODO - remove this, Cria o grupo para testar
     /*int status_create_group = auth_create_group("a", "b");
@@ -519,27 +520,4 @@ void quit(void)
 
     //We couldn't shutdown the listen_sock running accept,
     // Therefore we will just exit the program
-}
-
-/**
- * @brief  Translates an error code into a string 
- * @param  code: The error code
- * @param  generic_error: If there is no string for such error code, returns this string
- */
-const char *get_error_code_string(int8_t code, const char *generic_error)
-{
-    if (code == ERROR_WRONG_SECRET)
-        return "Wrong secret!";
-    else if (code == ERROR_AUTH_GROUP_NOT_PRESENT)
-        return "Group not present in the server!";
-    else if (code == ERROR_FAILED_AUTHENTICATION)
-        return "Failed authentication.";
-    else if (code == ERROR_SENDING)
-        return "Failed sending information to server.";
-    else if (code == ERROR_RECEIVING)
-        return "Failed receiving information from server.";
-    else if (code == ERROR_VALUE_NOT_FOUND)
-        return "Value not found.";
-
-    return generic_error;
 }
