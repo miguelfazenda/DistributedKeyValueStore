@@ -28,17 +28,17 @@
 
 typedef struct Message_struct
 {
-    int8_t messageID;
-    char* firstArg;
-    char* secondArg;
+    int8_t messageID;   //registers type of information
+    char* firstArg;     //pointer to first information
+    char* secondArg;    //pointer to second information
 } Message;
 
 #define AUTH_MESSAGE_STRUCT_ARG_SIZE 100
 typedef struct AuthMessage_struct
 {
-    int8_t messageID;
-    char firstArg[AUTH_MESSAGE_STRUCT_ARG_SIZE];
-    char secondArg[AUTH_MESSAGE_STRUCT_ARG_SIZE];
+    int8_t messageID;   //registers type of information
+    char firstArg[AUTH_MESSAGE_STRUCT_ARG_SIZE];    //first information
+    char secondArg[AUTH_MESSAGE_STRUCT_ARG_SIZE];   //second information
 
     //Contains an unique number for that request, to check if the response corresponds to this request
     uint8_t request_number;

@@ -107,7 +107,7 @@ int8_t auth_send_login(const char* group_id, const char* group_secret)
  * @brief  Sends to the auth server the request to create a group, and waits the reponse
  * @return the return code, 1 means success
  */
-int8_t auth_create_group(const char* group_id, const char* group_secret)
+int8_t auth_create_group(const char* group_id, char* group_secret)
 {
     AuthMessage response_msg;
 
@@ -119,6 +119,7 @@ int8_t auth_create_group(const char* group_id, const char* group_secret)
         return status;
 
     int8_t response = response_msg.messageID;
+    strcpy(group_secret, response_msg.firstArg);
     return response;
 }
 

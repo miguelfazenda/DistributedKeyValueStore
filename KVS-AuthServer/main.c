@@ -27,6 +27,7 @@ void create_server(void);
 void handle_message_login(AuthMessage* msg, struct sockaddr_in sender_sock_addr);
 void handle_message_create_group(AuthMessage* msg, struct sockaddr_in sender_sock_addr);
 void handle_message_get_secret(AuthMessage* msg, struct sockaddr_in sender_sock_addr);
+void generate_random_secret(char *str);
 
 int main(void)
 {
@@ -139,7 +140,9 @@ void handle_message_create_group(AuthMessage* msg, struct sockaddr_in sender_soc
     printf("Create group (Store secret)\n");
 
     char* group_id = msg->firstArg;
-    char* sent_secret = msg->secondArg;
+    char sent_secret[SECRET_SIZE];
+
+    generate_random_secret(sent_secret);
 
     printf("groupdID: %s\n", group_id);
     printf("secret: %s\n", sent_secret);
@@ -151,6 +154,8 @@ void handle_message_create_group(AuthMessage* msg, struct sockaddr_in sender_soc
     //Send response
     int8_t response = 1;
     AuthMessage resp_msg = { .messageID = response, .firstArg = {'\0'}, .secondArg = {'\0'}, .request_number = msg->request_number };
+    strcpy(resp_msg.firstArg, sent_secret);
+
     send_auth_message(resp_msg, sock, sender_sock_addr);
 }
 
@@ -186,4 +191,21 @@ void handle_message_get_secret(AuthMessage* msg, struct sockaddr_in sender_sock_
     
     //Send the response
     send_auth_message(resp_msg, sock, sender_sock_addr);
+}
+
+/**
+ * @brief  Generates a random secret for a group. 
+ * @note   
+ * @param  *str: a prealocated string of size SECRET_SIZE where the value is written to
+ * @retval None
+ */
+void generate_random_secret(char *str)
+{
+    const char charset[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ123456789!#$&/()=}][{";
+
+    for (size_t n = 0; n < SECRET_SIZE-1; n++) {
+        int key = rand() % (int) (sizeof(charset) - 1);
+        str[n] = charset[key];
+    }
+    str[SECRET_SIZE-1] = '\0';
 }

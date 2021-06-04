@@ -8,8 +8,8 @@
 
 typedef struct Client_struct
 {
-    int sockFD;
-    pthread_t thread;
+    int sockFD;     
+    pthread_t thread;   
     bool stay_connected;
 
     //Used when the client registers a callback
