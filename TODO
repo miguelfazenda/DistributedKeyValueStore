@@ -1,5 +1,6 @@
 TODO:
     IMPORTANTE: MUTEX groups_table
+    quit do authserver
 
     "Create group – receives the identifier of a group (a string) and prints a secret (a string)" ???
 
