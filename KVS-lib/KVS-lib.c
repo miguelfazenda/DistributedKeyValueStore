@@ -290,7 +290,9 @@ int register_callback(char *key, void (*callback_function)(char *))
     if (msg.messageID == MSG_OKAY)
     {
         //Inserts the key and callback function in the table
+#pragma GCC diagnostic ignored "-Wpedantic"
         table_insert(&CallbackTable, key, (void *)callback_function);
+#pragma GCC diagnostic pop
         return (1);
     }
     else
@@ -344,7 +346,9 @@ void* receive_callback_routine(__attribute__((unused)) void* in)
 
         if(msg.messageID == MSG_CALLBACK)
         {
+#pragma GCC diagnostic ignored "-Wpedantic"
             void (*callback_function)(char *) = table_get(&CallbackTable, msg.firstArg);
+#pragma GCC diagnostic pop
             callback_function(msg.firstArg);
         }
 

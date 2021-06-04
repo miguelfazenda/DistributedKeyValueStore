@@ -252,13 +252,14 @@ int8_t receive_auth_response(AuthMessage* msg, uint8_t expected_request_number)
         if(n_bytes < (ssize_t)sizeof(AuthMessage))
         {
             //Error receiving (or received less bytes than expected)
-
+            #pragma GCC diagnostic ignored "-Wlogical-op"
             if(errno == EAGAIN || errno == EWOULDBLOCK)
             {
                 //If the recvfrom timedout, it returns less bytes than it should, and sets errno, as specified in the manual
                 // We return an error code so we know to try and send again the packet
                 return ERROR_RECV_TIMEOUT;
             }
+            #pragma GCC diagnostic pop
 
             if(n_bytes == 0)
                 //The socket was shutdown
