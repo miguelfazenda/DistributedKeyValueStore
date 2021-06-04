@@ -170,6 +170,8 @@ void* thread_client_routine(void* in)
         client->stay_connected = 0;
     }
 
+    free_message(&msg);
+
     //Receives the PID of the client
     if(recv(client->sockFD, &client->pid, sizeof(pid_t), 0) < (ssize_t)sizeof(pid_t))
     {
@@ -492,9 +494,14 @@ void quit(void)
         //TODO avisar clientes que o servidor vai desligar. Talvez precise de um mutex, para nao enviar 2 coisas ao mesmo tempo com a outra thread
         //Na verdade avisar provavlmente nao faz sentido??
 
-        //Shutdown the socket and wait for the thread to join
-        shutdown(client->sockFD, SHUT_RDWR);
-        pthread_join(client->thread, NULL);
+        if(client->connected)
+        {
+            //Shutdown the socket and wait for the thread to join
+            shutdown(client->sockFD, SHUT_RDWR);
+            pthread_join(client->thread, NULL);
+        }
+
+        client = client->next;
     }
     pthread_mutex_unlock(&connected_clients.mtx_client_list);
 

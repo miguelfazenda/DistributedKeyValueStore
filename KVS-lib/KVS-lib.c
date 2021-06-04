@@ -311,16 +311,7 @@ int close_connection(void)
 
         //Close the socket
         close(sock);
-        sock = 0;
-
-        if(sock_callback != 0)
-        {
-            close(sock_callback);
-            pthread_join(thread_sock_callback, NULL);
-        }
-        sock_callback = 0;
-
-        
+        sock = 0;        
 
         //Free the callback table
         table_free(&CallbackTable);
@@ -328,7 +319,12 @@ int close_connection(void)
         return 1;
     }
 
-    //TODO close sock_callback if opened
+    if(sock_callback != 0)
+    {
+        close(sock_callback);
+        pthread_join(thread_sock_callback, NULL);
+    }
+    sock_callback = 0;
 
     return -1;
 }

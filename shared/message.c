@@ -13,6 +13,9 @@
  */
 int receive_message(int sockFD, Message* msg)
 {
+    msg->firstArg = NULL;
+    msg->secondArg = NULL;
+
     //Receives the message header, that contains the ID and size of the arguments
     unsigned char buf1[5];
     ssize_t n_bytes = recv(sockFD, buf1, 5, 0);
@@ -26,7 +29,6 @@ int receive_message(int sockFD, Message* msg)
     uint16_t secondArgSize = (uint16_t)buf1[3];
 
     //Receives the arguments and Allocate the arguments according to their size
-    msg->firstArg = NULL;
     if(firstArgSize > 0)    
     {
         msg->firstArg = (char*) malloc(firstArgSize * sizeof(char));
@@ -36,7 +38,6 @@ int receive_message(int sockFD, Message* msg)
             return (int)n_bytes;
     }
 
-    msg->secondArg = NULL;
     if(secondArgSize > 0)
     {
         msg->secondArg = (char*) malloc(secondArgSize * sizeof(char));

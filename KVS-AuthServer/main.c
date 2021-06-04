@@ -16,6 +16,7 @@
 
 #define AUTH_SERVER_PORT 25565
 
+//Contains the secrets for each group (groupid, secret)
 HashTable secrets_table;
 struct sockaddr_in sock_address;
 int sock;
