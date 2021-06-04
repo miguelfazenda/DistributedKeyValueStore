@@ -311,16 +311,7 @@ int close_connection(void)
 
         //Close the socket
         close(sock);
-        sock = 0;
-
-        if(sock_callback != 0)
-        {
-            close(sock_callback);
-            pthread_join(thread_sock_callback, NULL);
-        }
-        sock_callback = 0;
-
-        
+        sock = 0;        
 
         //Free the callback table
         table_free(&CallbackTable);
@@ -328,7 +319,12 @@ int close_connection(void)
         return 1;
     }
 
-    //TODO close sock_callback if opened
+    if(sock_callback != 0)
+    {
+        close(sock_callback);
+        pthread_join(thread_sock_callback, NULL);
+    }
+    sock_callback = 0;
 
     return -1;
 }
@@ -348,7 +344,6 @@ void* receive_callback_routine(__attribute__((unused)) void* in)
 
         if(msg.messageID == MSG_CALLBACK)
         {
-            printf("Debug: recebido callback de %s\n", msg.firstArg);
             void (*callback_function)(char *) = table_get(&CallbackTable, msg.firstArg);
             callback_function(msg.firstArg);
         }

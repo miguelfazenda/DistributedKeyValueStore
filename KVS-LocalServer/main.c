@@ -39,11 +39,14 @@ void quit(void);
 void read_terminal(char *word);
 const char *get_error_code_string(int8_t code, const char *generic_error);
 
-//TODO criar doc para
+void free_client_list_item_list(void* ptr);
 
 int main(void)
 {
     groups_table = table_create(free_value_hashtable);
+    clients_with_callback_by_key = table_create(free_client_list_item_list);
+
+    pthread_mutex_init(&clients_with_callback_by_key_mtx, NULL);    
 
     if (auth_create_socket("127.0.0.1", 25565) != 1)
     {
@@ -150,8 +153,8 @@ int main(void)
     //Wait for server thread to stop
     //pthread_join(server_thread, NULL);
 
-    //TODO table_free(groups_table);
-    //TODO pthread_mutex_lock(&clients_with_callback_by_key_mtx); table_free(clients_with_callback_by_key); pthread_mutex_unlock(&clients_with_callback_by_key_mtx);
+    table_free(&groups_table);
+    table_free(&clients_with_callback_by_key);
 
     return 1;
 }
@@ -180,12 +183,18 @@ void *thread_client_routine(void *in)
             printf("Error receiving message from client. Disconnecting client\n");
             client->stay_connected = 0;
         }
+
+        if(client->group_id == NULL)
+            //Failed login
+            client->stay_connected = 0;
     }
     else
     {
         printf("Client should have sent a login message!\n");
         client->stay_connected = 0;
     }
+
+    free_message(&msg);
 
     //Receives the PID of the client
     if (recv(client->sockFD, &client->pid, sizeof(pid_t), 0) < (ssize_t)sizeof(pid_t))
@@ -275,7 +284,6 @@ void *thread_client_routine(void *in)
         else if (recv_status == 0)
         {
             //The socket has been shutdown (by quit())
-            //TODO inform the client the server has shutdown
             printf("Client socket has been shutdown\n");
             client->stay_connected = 0;
         }
@@ -292,7 +300,7 @@ void *thread_client_routine(void *in)
 
     //Client disconnected, close socket and mark it as disconnected
     disconnect_client(client);
-    //client_list_remove_and_free(&connected_clients, client);
+    //client_list_remove_and_free(&clients, client);
 
     printf("Client thread has ended. Connection time %g seconds\n", difftime(client->time_disconnected, client->time_connected));
 
@@ -301,8 +309,8 @@ void *thread_client_routine(void *in)
 
 void client_connected(int clientFD)
 {
-    //Add client to the list of connected clients (connected_clients_list)
-    Client *client = (Client *)malloc(sizeof(Client));
+    //Add client to the list of connected clients (clients_list)
+    Client* client = (Client*)malloc(sizeof(Client));
     client->next = NULL;
     client->sockFD = clientFD;
     client->group_id = NULL;
@@ -312,7 +320,7 @@ void client_connected(int clientFD)
     client->time_disconnected = 0;
     client->callback_sock_fd = 0;
 
-    client_list_add(&connected_clients, client);
+    client_list_add(&clients, client);
 
     //Starts the client thread, and saves the thread handler in client->thread
     pthread_create(&client->thread, NULL, thread_client_routine, (void *)client);
@@ -336,6 +344,32 @@ void disconnect_client(Client *client)
 
     if (client->callback_sock_fd != 0)
         close(client->callback_sock_fd);
+
+
+    //Removes this client from anywhere on the list of registered callbacks
+    pthread_mutex_lock(&clients_with_callback_by_key_mtx);
+    for(int i=0; i<TABLE_SIZE; i++)
+    {
+        TableItem* item = clients_with_callback_by_key.array[i];
+        if(item == NULL)
+            continue;
+
+        Client_List_Item** c = (Client_List_Item**)(&item->value);
+        while(*c != NULL)
+        {
+            if((*c)->client == client)
+            {
+                Client_List_Item* aux = *c;
+                *c = (*c)->next;
+
+                free(aux);
+                continue;
+            }
+
+            c = &(*c)->next;
+        }
+    }
+    pthread_mutex_unlock(&clients_with_callback_by_key_mtx);
 }
 
 void *run_server(__attribute__((unused)) void *a)
@@ -445,8 +479,11 @@ void *run_callback_sock_accept(__attribute__((unused)) void *a)
         {
             printf("A new client callback socket has connected\n");
 
-            //Waits for the client to send it's session_id.
-            //TODO put this in a thread, and also set a timeout for this recv
+            //Set timeout for socket to receive session_id
+            struct timeval tv = { .tv_sec = 5, .tv_usec = 0 };
+            setsockopt(auth_sock, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof tv);
+
+            //Waits for the client to send it's session_id. 
             char session_id[SESSION_ID_STR_SIZE];
             recv(client_callback_sock_fd, session_id, SESSION_ID_STR_SIZE, 0);
 
@@ -454,11 +491,10 @@ void *run_callback_sock_accept(__attribute__((unused)) void *a)
 
             //Find which client corresponds to this socket
             //Lock mutex
-            //TODO ver se realmente é preciso Lock mutex, porque aqui so lemos a lista. No max é o client->next que muda, porque nao removemos nada da lista??
-            pthread_mutex_lock(&connected_clients.mtx_client_list);
+            pthread_mutex_lock(&clients.mtx_client_list);
 
-            Client *client = connected_clients.client_list;
-            while (client != NULL)
+            Client* client = clients.client_list;
+            while(client != NULL)
             {
                 if (client->connected)
                 {
@@ -476,8 +512,7 @@ void *run_callback_sock_accept(__attribute__((unused)) void *a)
             }
 
             //Unlock mutex
-            //TODO ver se realmente é preciso Lock mutex, porque aqui so lemos a lista. No max é o client->next que muda, porque nao removemos nada da lista??
-            pthread_mutex_unlock(&connected_clients.mtx_client_list);
+            pthread_mutex_unlock(&clients.mtx_client_list);
 
             //Tell the client we received the session_id! Send 1 if we associated with the right client, 0 if we couldn't find
             send(client_callback_sock_fd, &client_with_session_id_found, sizeof(client_with_session_id_found), 0);
@@ -498,18 +533,26 @@ void quit(void)
     quitting = true;
 
     //Stop all client scokets and threads
+<<<<<<< HEAD
     pthread_mutex_lock(&connected_clients.mtx_client_list);
     Client *client = connected_clients.client_list;
     while (client != NULL)
+=======
+    pthread_mutex_lock(&clients.mtx_client_list);
+    Client* client = clients.client_list;
+    while(client != NULL)
+>>>>>>> fazenda
     {
-        //TODO avisar clientes que o servidor vai desligar. Talvez precise de um mutex, para nao enviar 2 coisas ao mesmo tempo com a outra thread
-        //Na verdade avisar provavlmente nao faz sentido??
+        if(client->connected)
+        {
+            //Shutdown the socket and wait for the thread to join
+            shutdown(client->sockFD, SHUT_RDWR);
+            pthread_join(client->thread, NULL);
+        }
 
-        //Shutdown the socket and wait for the thread to join
-        shutdown(client->sockFD, SHUT_RDWR);
-        pthread_join(client->thread, NULL);
+        client = client->next;
     }
-    pthread_mutex_unlock(&connected_clients.mtx_client_list);
+    pthread_mutex_unlock(&clients.mtx_client_list);
 
     //Close listen_sock
     /*shutdown(listen_sock, SHUT_RDWR);
@@ -520,4 +563,19 @@ void quit(void)
 
     //We couldn't shutdown the listen_sock running accept,
     // Therefore we will just exit the program
+}
+
+void free_client_list_item_list(void* ptr)
+{
+    //Get the first item
+    Client_List_Item* item = (Client_List_Item*)ptr;
+    while (item != NULL)
+    {
+        Client_List_Item* aux = item;
+
+        item = item->next;
+
+        free(aux);
+    }
+    
 }

@@ -1,5 +1,5 @@
 TODO:
-    informar o cliente quando o server fecha e vice versa
+    IMPORTANTE: MUTEX groups_table
 
     "Create group – receives the identifier of a group (a string) and prints a secret (a string)" ???
 
@@ -7,7 +7,7 @@ TODO:
 
     Ver se tenho de meter um mutex dentro do client. A thread do client usa a estrutura. Mas outras thread podem usar o socket do callback, por exemplo. Ou ver o disconnect client
 
-    Verificar o recv se veio do auth server
+    Tirar o cliente da lista de clientes com callback(na hashtable)
 
     Fazer testes
 
@@ -16,3 +16,5 @@ TODO:
     Se enviar uma string grande no insert, o recv do receive_message sai separado
         testar com insert a ffddklasdfjakjfdlaskjfwiopkjlvmdfsjipgnriunaskjdfs, jksdfjksdfjklsdfajksdfjkldsfjkldfskjfsdgjkdfgsjhfgdshjdfgsjhsdfgjhfgsdhjjhksfgjhksdfjkfhsgjkfghdjkfghsjkghsdghjfsd
         https://stackoverflow.com/questions/4336612/handling-multiple-recv-calls-and-all-possible-scenarios
+
+//TODO put this in a thread, and also set a timeout for this recv 

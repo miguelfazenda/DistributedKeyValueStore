@@ -13,6 +13,9 @@
  */
 int receive_message(int sockFD, Message* msg)
 {
+    msg->firstArg = NULL;
+    msg->secondArg = NULL;
+
     //Receives the message header, that contains the ID and size of the arguments
     unsigned char buf1[5];
     ssize_t n_bytes = recv(sockFD, buf1, 5, 0);
@@ -26,7 +29,6 @@ int receive_message(int sockFD, Message* msg)
     uint16_t secondArgSize = (uint16_t)buf1[3];
 
     //Receives the arguments and Allocate the arguments according to their size
-    msg->firstArg = NULL;
     if(firstArgSize > 0)    
     {
         msg->firstArg = (char*) malloc(firstArgSize * sizeof(char));
@@ -36,7 +38,6 @@ int receive_message(int sockFD, Message* msg)
             return (int)n_bytes;
     }
 
-    msg->secondArg = NULL;
     if(secondArgSize > 0)
     {
         msg->secondArg = (char*) malloc(secondArgSize * sizeof(char));
@@ -60,20 +61,20 @@ int send_message(int sockFD, Message msg)
     memcpy(buffer_msg_header + 1, &firstArgSize, sizeof(uint16_t));
     memcpy(buffer_msg_header + 3, &secondArgSize, sizeof(uint16_t));
 
-    //Send the message header
-    ssize_t n_bytes = send(sockFD, buffer_msg_header, 5, 0);
+    //Send the message header, MSG_NOSIGNAL prevents crashing when can't send data to server
+    ssize_t n_bytes = send(sockFD, buffer_msg_header, 5, MSG_NOSIGNAL);
     if(n_bytes <= 0)
         return (int)n_bytes;
         
     if(msg.firstArg != NULL)
     {
-        n_bytes = send(sockFD, msg.firstArg, firstArgSize*sizeof(char), 0);
+        n_bytes = send(sockFD, msg.firstArg, firstArgSize*sizeof(char), MSG_NOSIGNAL);
         if(n_bytes <= 0)
             return (int)n_bytes;
     }
     if(msg.secondArg != NULL)
     {
-        n_bytes = send(sockFD, msg.secondArg, secondArgSize*sizeof(char), 0);
+        n_bytes = send(sockFD, msg.secondArg, secondArgSize*sizeof(char), MSG_NOSIGNAL);
         if(n_bytes <= 0)
             return (int)n_bytes;
     }

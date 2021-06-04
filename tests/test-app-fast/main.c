@@ -5,6 +5,7 @@
 #include <string.h>
 
 void* load_library(void);
+void f1(char *changed_key);
 
 /* declare pointers to functions */
 int (*establish_connection) (const char * group_id, const char * secret);
@@ -26,9 +27,18 @@ int main(){
     assert(strcmp(val, "teste2") == 0);
     free(val);
 
+	register_callback("a", f1);
+
+	close_connection();
+
 	dlclose(handle);
 	
 	exit(0);
+}
+
+void f1(char *changed_key)
+{
+    printf("The key with name %s was changed\n", changed_key);
 }
 
 void* load_library(void)

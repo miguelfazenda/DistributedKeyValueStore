@@ -85,12 +85,6 @@ int msg_received_login(Client *client, Message *msg)
         return (-1);
     }
 
-    //TODO disconectar?
-    /*if(wrong_secret)
-    {
-        client->stay_connected = 0;
-    }*/
-
     return (1);
 }
 /*Message is received, this function assigns the value to the key and sends feedback on the execution to the application*/
@@ -269,9 +263,6 @@ int msg_received_register_callback(Client *client, Message *msg)
  */
 void value_for_key_modified(char* key, char* group_id)
 {
-    printf("TODO: notify clients this key has changed");
-    //clients_with_callback_by_key
-
     pthread_mutex_lock(&clients_with_callback_by_key_mtx);
 
     //Get a list of clients for a callback for that key
