@@ -46,6 +46,9 @@ int main(void)
     groups_table = table_create(free_value_hashtable);
     clients_with_callback_by_key = table_create(free_client_list_item_list);
 
+    clients.client_list = NULL;
+
+    pthread_mutex_init(&clients.mtx_client_list, NULL);    
     pthread_mutex_init(&clients_with_callback_by_key_mtx, NULL);    
 
     if (auth_create_socket("127.0.0.1", 25565) != 1)
@@ -55,22 +58,6 @@ int main(void)
     }
 
     srand((unsigned int)time(NULL));
-
-    //TODO - remove this, Cria o grupo para testar
-    /*int status_create_group = auth_create_group("a", "b");
-    if (status_create_group == 1)
-        printf("Grupo criado com sucesso\n");
-    else
-        printf("Erro a criar grupo: %d\n", status_create_group);
-
-    char group_secret[AUTH_MESSAGE_STRUCT_ARG_SIZE];
-    int status_get_secret = auth_get_secret("a", group_secret);
-    if (status_get_secret == 1)
-        printf("Segredo obtido: %s\n", group_secret);
-    else if (status_get_secret == ERROR_AUTH_GROUP_NOT_PRESENT)
-        printf("Erro grupo nao existente\n");
-    else
-        printf("Erro a obter segredo: %d\n", status_create_group);*/
 
     //Creates a thread to run the server accepting connections
     pthread_create(&server_thread, NULL, run_server, NULL);
@@ -108,7 +95,6 @@ int main(void)
             }
             else
             {
-                //TODO criar doc para o get_error
                 printf("Error creating group: %s\n", get_error_code_string(status, "error"));
             }
         }
@@ -139,7 +125,55 @@ int main(void)
         }
         else if (strcmp(operation, "status") == 0)
         {
-            
+            pthread_mutex_lock(&clients.mtx_client_list);
+
+            int i = 0;
+            Client* client = clients.client_list;
+
+            if(client == NULL)
+            {
+                printf("No client has yet connected\n");
+            }
+
+            while(client != NULL)
+            {
+                struct tm * time_info;
+                char connected_time[9]; //"HH:MM:SS\0"
+                char disconnected_time[9]; //"HH:MM:SS\0"
+
+                time_info = localtime(&client->time_connected);
+                strftime(connected_time, sizeof(connected_time), "%H:%M:%S", time_info);
+                
+
+                double connection_time;
+                if(client->connected)
+                {
+                    connection_time = difftime(time(NULL), client->time_connected);
+                }
+                else
+                {
+                    //Already disconnected
+                    connection_time = difftime(client->time_disconnected, client->time_connected);
+
+                    time_info = localtime(&client->time_disconnected);
+                    strftime(disconnected_time, sizeof(disconnected_time), "%H:%M:%S", time_info);
+                }
+
+                printf("Client %d:\n\t%s\n\tPID %d\n\tConnection time %g seconds\n\tConnected at %s\n",
+                    i,
+                    (client->connected ? "Connected" : "Disconnected"),
+                    client->pid,
+                    connection_time,
+                    connected_time);
+
+                if(!client->connected)
+                    printf("\tDisconnected at %s\n", disconnected_time);
+
+                i++;
+                client = client->next;
+            }
+
+            pthread_mutex_unlock(&clients.mtx_client_list);
         }
         else if (strcmp(operation, "quit") == 0)
         {
