@@ -4,7 +4,7 @@
 #include <stdbool.h>
 
 /**
- * @brief Adds the client to the connected_clients_list.
+ * @brief Adds the client to the clients_list.
  *        Thread-safe
  * 
  * @param client 
@@ -32,7 +32,7 @@ void client_list_add(Client_List* list, Client* client)
 }
 
 /**
- * @brief Removes the client from to the connected_clients_list and frees the memory.
+ * @brief Removes the client from to the clients_list and frees the memory.
  *        Thread-safe
  * 
  * @param client 

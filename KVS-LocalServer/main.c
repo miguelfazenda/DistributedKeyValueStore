@@ -265,7 +265,6 @@ void* thread_client_routine(void* in)
         else if(recv_status == 0)
         {
             //The socket has been shutdown (by quit())
-            //TODO inform the client the server has shutdown
             printf("Client socket has been shutdown\n");
             client->stay_connected = 0;
         }
@@ -282,7 +281,7 @@ void* thread_client_routine(void* in)
 
     //Client disconnected, close socket and mark it as disconnected
     disconnect_client(client);
-    //client_list_remove_and_free(&connected_clients, client);
+    //client_list_remove_and_free(&clients, client);
 
     printf("Client thread has ended. Connection time %g seconds\n", difftime(client->time_disconnected, client->time_connected));
 
@@ -291,7 +290,7 @@ void* thread_client_routine(void* in)
 
 void client_connected(int clientFD)
 {
-    //Add client to the list of connected clients (connected_clients_list)
+    //Add client to the list of connected clients (clients_list)
     Client* client = (Client*)malloc(sizeof(Client));
     client->next = NULL;
     client->sockFD = clientFD;
@@ -302,7 +301,7 @@ void client_connected(int clientFD)
     client->time_disconnected = 0;
     client->callback_sock_fd = 0;
 
-    client_list_add(&connected_clients, client);
+    client_list_add(&clients, client);
 
     //Starts the client thread, and saves the thread handler in client->thread
     pthread_create(&client->thread, NULL, thread_client_routine, (void*)client);
@@ -474,9 +473,9 @@ void* run_callback_sock_accept(__attribute__((unused)) void* a)
             //Find which client corresponds to this socket
             //Lock mutex
             //TODO ver se realmente é preciso Lock mutex, porque aqui so lemos a lista. No max é o client->next que muda, porque nao removemos nada da lista??
-            pthread_mutex_lock(&connected_clients.mtx_client_list);
+            pthread_mutex_lock(&clients.mtx_client_list);
 
-            Client* client = connected_clients.client_list;
+            Client* client = clients.client_list;
             while(client != NULL)
             {
                 if(client->connected)
@@ -496,7 +495,7 @@ void* run_callback_sock_accept(__attribute__((unused)) void* a)
 
             //Unlock mutex
             //TODO ver se realmente é preciso Lock mutex, porque aqui so lemos a lista. No max é o client->next que muda, porque nao removemos nada da lista??
-            pthread_mutex_unlock(&connected_clients.mtx_client_list);
+            pthread_mutex_unlock(&clients.mtx_client_list);
 
             //Tell the client we received the session_id! Send 1 if we associated with the right client, 0 if we couldn't find
             send(client_callback_sock_fd, &client_with_session_id_found, sizeof(client_with_session_id_found), 0);
@@ -517,8 +516,8 @@ void quit(void)
     quitting = true;
 
     //Stop all client scokets and threads
-    pthread_mutex_lock(&connected_clients.mtx_client_list);
-    Client* client = connected_clients.client_list;
+    pthread_mutex_lock(&clients.mtx_client_list);
+    Client* client = clients.client_list;
     while(client != NULL)
     {
         //TODO avisar clientes que o servidor vai desligar. Talvez precise de um mutex, para nao enviar 2 coisas ao mesmo tempo com a outra thread
@@ -533,7 +532,7 @@ void quit(void)
 
         client = client->next;
     }
-    pthread_mutex_unlock(&connected_clients.mtx_client_list);
+    pthread_mutex_unlock(&clients.mtx_client_list);
 
     //Close listen_sock
     /*shutdown(listen_sock, SHUT_RDWR);

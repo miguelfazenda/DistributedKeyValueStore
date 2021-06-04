@@ -61,20 +61,20 @@ int send_message(int sockFD, Message msg)
     memcpy(buffer_msg_header + 1, &firstArgSize, sizeof(uint16_t));
     memcpy(buffer_msg_header + 3, &secondArgSize, sizeof(uint16_t));
 
-    //Send the message header
-    ssize_t n_bytes = send(sockFD, buffer_msg_header, 5, 0);
+    //Send the message header, MSG_NOSIGNAL prevents crashing when can't send data to server
+    ssize_t n_bytes = send(sockFD, buffer_msg_header, 5, MSG_NOSIGNAL);
     if(n_bytes <= 0)
         return (int)n_bytes;
         
     if(msg.firstArg != NULL)
     {
-        n_bytes = send(sockFD, msg.firstArg, firstArgSize*sizeof(char), 0);
+        n_bytes = send(sockFD, msg.firstArg, firstArgSize*sizeof(char), MSG_NOSIGNAL);
         if(n_bytes <= 0)
             return (int)n_bytes;
     }
     if(msg.secondArg != NULL)
     {
-        n_bytes = send(sockFD, msg.secondArg, secondArgSize*sizeof(char), 0);
+        n_bytes = send(sockFD, msg.secondArg, secondArgSize*sizeof(char), MSG_NOSIGNAL);
         if(n_bytes <= 0)
             return (int)n_bytes;
     }
