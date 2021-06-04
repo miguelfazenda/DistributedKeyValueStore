@@ -7,8 +7,6 @@ TODO:
 
     Ver se tenho de meter um mutex dentro do client. A thread do client usa a estrutura. Mas outras thread podem usar o socket do callback, por exemplo. Ou ver o disconnect client
 
-    Verificar o recv se veio do auth server
-
     Tirar o cliente da lista de clientes com callback(na hashtable)
 
     Fazer testes

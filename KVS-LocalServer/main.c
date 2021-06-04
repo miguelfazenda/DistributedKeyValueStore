@@ -36,11 +36,15 @@ void client_connected(int clientFD);
 void disconnect_client(Client* client);
 void quit(void);
 void read_terminal(char *word);
+void free_client_list_item_list(void* ptr);
 
 int main(void)
 {
     char operation[100], first_arg[100], second_arg[100];
     groups_table = table_create(free_value_hashtable);
+    clients_with_callback_by_key = table_create(free_client_list_item_list);
+
+    pthread_mutex_init(&clients_with_callback_by_key_mtx, NULL);
     /*table_insert(&groups_table, "miguel", "fixe");
     table_insert(&groups_table, "ab", "ola1");
     table_insert(&groups_table, "ba", "ola2");
@@ -128,8 +132,8 @@ int main(void)
     //Wait for server thread to stop
     //pthread_join(server_thread, NULL);
 
-    //TODO table_free(groups_table);
-    //TODO pthread_mutex_lock(&clients_with_callback_by_key_mtx); table_free(clients_with_callback_by_key); pthread_mutex_unlock(&clients_with_callback_by_key_mtx);
+    table_free(&groups_table);
+    table_free(&clients_with_callback_by_key);
 
     return 1;
 }
@@ -322,6 +326,32 @@ void disconnect_client(Client* client)
 
     if(client->callback_sock_fd != 0)
         close(client->callback_sock_fd);
+
+
+    //Removes this client from anywhere on the list of registered callbacks
+    pthread_mutex_lock(&clients_with_callback_by_key_mtx);
+    for(int i=0; i<TABLE_SIZE; i++)
+    {
+        TableItem* item = clients_with_callback_by_key.array[i];
+        if(item == NULL)
+            continue;
+
+        Client_List_Item** c = (Client_List_Item**)(&item->value);
+        while(*c != NULL)
+        {
+            if((*c)->client == client)
+            {
+                Client_List_Item* aux = *c;
+                *c = (*c)->next;
+
+                free(aux);
+                continue;
+            }
+
+            c = &(*c)->next;
+        }
+    }
+    pthread_mutex_unlock(&clients_with_callback_by_key_mtx);
 }
 
 
@@ -514,4 +544,19 @@ void quit(void)
 
     //We couldn't shutdown the listen_sock running accept,
     // Therefore we will just exit the program
+}
+
+void free_client_list_item_list(void* ptr)
+{
+    //Get the first item
+    Client_List_Item* item = (Client_List_Item*)ptr;
+    while (item != NULL)
+    {
+        Client_List_Item* aux = item;
+
+        item = item->next;
+
+        free(aux);
+    }
+    
 }

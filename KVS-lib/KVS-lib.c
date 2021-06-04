@@ -344,7 +344,6 @@ void* receive_callback_routine(__attribute__((unused)) void* in)
 
         if(msg.messageID == MSG_CALLBACK)
         {
-            printf("Debug: recebido callback de %s\n", msg.firstArg);
             void (*callback_function)(char *) = table_get(&CallbackTable, msg.firstArg);
             callback_function(msg.firstArg);
         }
