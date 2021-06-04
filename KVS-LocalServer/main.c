@@ -533,15 +533,9 @@ void quit(void)
     quitting = true;
 
     //Stop all client scokets and threads
-<<<<<<< HEAD
-    pthread_mutex_lock(&connected_clients.mtx_client_list);
-    Client *client = connected_clients.client_list;
-    while (client != NULL)
-=======
     pthread_mutex_lock(&clients.mtx_client_list);
     Client* client = clients.client_list;
     while(client != NULL)
->>>>>>> fazenda
     {
         if(client->connected)
         {
