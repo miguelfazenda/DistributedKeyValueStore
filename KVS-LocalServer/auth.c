@@ -63,7 +63,7 @@ int8_t auth_create_socket(const char* host_name, uint16_t host_port)
 
     //Set timeout for socket
     struct timeval tv;
-    tv.tv_sec = 5;
+    tv.tv_sec = 2;
     tv.tv_usec = 0;
     setsockopt(auth_sock, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof tv);
 
@@ -71,6 +71,14 @@ int8_t auth_create_socket(const char* host_name, uint16_t host_port)
     pthread_mutex_init(&mtx_auth, NULL);
 
     printf("Socket for auth comm open\n");
+
+    //Test if the server is reachable
+    AuthMessage response;
+    int8_t status = send_auth_message_and_wait_response(create_auth_message(MSG_AUTH_CONNECT, NULL, NULL, request_number_counter++), &response);
+    if(status != 1 || response.messageID != 1)
+    {
+        return ERROR_AUTH_SERVER_UNREACHABLE;
+    }
 
     return 1;
 }

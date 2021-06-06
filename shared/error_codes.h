@@ -13,6 +13,7 @@
 #define ERROR_FAILED_CONNECTING -9
 #define ERROR_RECV_TIMEOUT -10 //recv function timed out
 #define ERROR_AUTH_GROUP_ALREADY_EXISTS -11
+#define ERROR_AUTH_SERVER_UNREACHABLE -12
 
 const char *get_error_code_string(int8_t code, const char *generic_error);
 

@@ -98,6 +98,12 @@ int main(void)
             handle_message_get_secret(&msg, sender_sock_addr);
         else if(msg.messageID == MSG_AUTH_DELETE_GROUP)
             handle_message_delete_group(&msg, sender_sock_addr);
+        else if(msg.messageID == MSG_AUTH_CONNECT)
+        {
+            printf("A LocalServer has connected\n");
+            send_auth_message(create_auth_message(1, NULL, NULL, msg.request_number), sock, sender_sock_addr);
+        }
+            
     }
 
     close(sock);

@@ -21,6 +21,9 @@ const char *get_error_code_string(int8_t code, const char *generic_error)
         return "Value not found.";
     else if (code == ERROR_AUTH_GROUP_ALREADY_EXISTS)
         return "Group already exists.";
-
+    else if (code == ERROR_AUTH_SERVER_UNREACHABLE)
+        return "Auth server unreachable.";
+        
+        
     return generic_error;
 }

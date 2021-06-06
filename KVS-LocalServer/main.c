@@ -40,7 +40,7 @@ const char *get_error_code_string(int8_t code, const char *generic_error);
 
 void free_client_list_item_list(void* ptr);
 
-int main(void)
+int main(int argc, char *argv[])
 {
     //Init groups table and mutex
     groups_table = table_create(free_value_hashtable);
@@ -53,9 +53,17 @@ int main(void)
     clients_with_callback_by_key = table_create(free_client_list_item_list);
     pthread_mutex_init(&clients_with_callback_by_key_mtx, NULL);
 
-    if (auth_create_socket("127.0.0.1", 25565) != 1)
+    const char* host_name = "127.0.0.1";
+
+    if(argc > 1)
     {
-        printf("Error creating the auth connection socket\n");
+        host_name = argv[1];
+    }
+
+    int8_t auth_conn_status = auth_create_socket(host_name, 25565);
+    if (auth_conn_status != 1)
+    {
+        printf("Error creating the auth connection socket: %s\n", get_error_code_string(auth_conn_status, "error"));
         exit(-1);
     }
 
