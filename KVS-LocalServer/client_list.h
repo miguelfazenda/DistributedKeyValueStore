@@ -8,24 +8,23 @@
 
 typedef struct Client_struct
 {
-    int sockFD;     
-    pthread_t thread;   
-    bool stay_connected;
+    int sockFD; //The main socket
+    pthread_t thread; //The thread receiving the data.
+    bool stay_connected; //If the server should or not disconnect this client
+    char* group_id; //If group_id is NULL, the client isn't logged in yet
 
-    //Used when the client registers a callback
-    int callback_sock_fd;
+    int callback_sock_fd; //The socket used when the client registers a callback
 
+    //Each client gets a random session ID. This is used to identify when the callback socket connects, which client it's respective to.
     char session_id[SESSION_ID_STR_SIZE];
 
-    //If group_id is NULL, the client isn't logged in yet
-    char* group_id;
+    bool connected; //If it's connected
+    time_t time_connected; //Time of connection
+    time_t time_disconnected; //Time of disconnection (if disconnected)
 
-    bool connected;
-    time_t time_connected;
-    time_t time_disconnected;
+    pid_t pid; //The PID of the client process
 
-    pid_t pid;
-
+    //The next client in the main client list 
     struct Client_struct* next;
 } Client;
 

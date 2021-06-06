@@ -25,8 +25,10 @@ int receive_message(int sockFD, Message* msg)
     msg->messageID = (int8_t)buf1[0];
 
     //Size of the strings, including the null-terminator
-    uint16_t firstArgSize = (uint16_t)buf1[1];
-    uint16_t secondArgSize = (uint16_t)buf1[3];
+    uint16_t firstArgSize;
+    uint16_t secondArgSize;
+    memcpy(&firstArgSize, &buf1[1], sizeof(uint16_t));
+    memcpy(&secondArgSize, &buf1[3], sizeof(uint16_t));
 
     //Receives the arguments and Allocate the arguments according to their size
     if(firstArgSize > 0)    

@@ -5,19 +5,6 @@
 #include "globals.h"
 #include "auth.h"
 
- /*message_handling_functions = {
-        NULL,
-        msg_received_login,
-        msg_received_put,
-        NULL,
-        NULL,
-        NULL,
-        NULL,
-        NULL,
-        NULL,
-        NULL
-    };*/
-
 void generate_random_session_id(char *str);
 void value_for_key_modified(char* key, char* group_id);
 
@@ -43,6 +30,7 @@ int msg_received_login(Client *client, Message *msg)
     if(login_success)
     {
         // Check if table exists
+        pthread_mutex_lock(&groups_table_mtx);
         HashTable* table_for_group = (HashTable*) table_get(&groups_table, client->group_id);
 
         //If table does not exist, create one
@@ -54,6 +42,8 @@ int msg_received_login(Client *client, Message *msg)
 
             printf("Created a new table for group %s\n", group_id);
         }
+
+        pthread_mutex_unlock(&groups_table_mtx);
     }
     
     int8_t response_message_id = MSG_OKAY;
@@ -103,6 +93,7 @@ int msg_received_put(Client *client, Message *msg)
     else
     {
         //Finds the group table
+        pthread_mutex_lock(&groups_table_mtx);
         group = table_get(&groups_table, client->group_id);
 
         //Check if the group table exists
@@ -118,6 +109,9 @@ int msg_received_put(Client *client, Message *msg)
 
         //Inserts the value in the table
         table_insert(group, msg->firstArg, strdup(msg->secondArg));
+        pthread_mutex_unlock(&groups_table_mtx);
+        
+        //Send callback to clients
         value_for_key_modified(msg->firstArg, client->group_id);
 
         msg2.messageID = MSG_OKAY;
@@ -146,6 +140,7 @@ int msg_received_get(Client *client, Message *msg)
     else
     {
         //Finds the group table
+        pthread_mutex_lock(&groups_table_mtx);
         group = table_get(&groups_table, client->group_id);
 
         //Check if the group table exists
@@ -154,6 +149,8 @@ int msg_received_get(Client *client, Message *msg)
             //If the group table exists, then try to get the value
             value = table_get(group, msg->firstArg);
         }
+
+        pthread_mutex_unlock(&groups_table_mtx);
 
         // If value == NULL, not found, else it is found and sent to client
         if (value == NULL)
@@ -188,10 +185,12 @@ int msg_received_delete(Client *client, Message *msg)
     else
     {
         //Finds the group table
+        pthread_mutex_lock(&groups_table_mtx);
         group = table_get(&groups_table, client->group_id);
         // If value == NULL, not found, else it is found and sent to client
         if (group != NULL && table_delete(group, msg->firstArg) == 0) //successfully deleted
         {
+            //Send callback to clients
             value_for_key_modified(msg->firstArg, client->group_id);
             msg2.messageID = MSG_OKAY;
             msg2.firstArg = NULL;
@@ -203,6 +202,8 @@ int msg_received_delete(Client *client, Message *msg)
             msg2.firstArg = NULL;
             msg2.secondArg = NULL;
         }
+
+        pthread_mutex_unlock(&groups_table_mtx);
     }
 
     if (send_message(client->sockFD, msg2) == -1)

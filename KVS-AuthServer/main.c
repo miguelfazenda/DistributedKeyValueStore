@@ -9,6 +9,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <string.h>
+#include <signal.h>
 
 #include "../shared/message.h"
 #include "../shared/hashtable.h"
@@ -31,8 +32,23 @@ void handle_message_get_secret(AuthMessage* msg, struct sockaddr_in sender_sock_
 void handle_message_delete_group(AuthMessage* msg, struct sockaddr_in sender_sock_addr);
 void generate_random_secret(char *str);
 
+static volatile int keep_running = 1;
+
+void control_c_handler(int x);
+
+/**
+ * @brief  When control-c is pressed, shutdown the socket
+ */
+void control_c_handler(__attribute__((unused)) int x) {
+    keep_running = 0;
+    printf("Closing server\n");
+    shutdown(sock, SHUT_RDWR);
+}
+
 int main(void)
 {
+    signal(SIGINT, control_c_handler);
+    
     //A table that stores the GroupID-Secret
     secrets_table = table_create(free_value_str);
     //table_insert(&secrets_table, "Grupo", (char*)"Secret");
@@ -48,16 +64,24 @@ int main(void)
 
     int return_code = 0;
 
+    printf("Press CTRL-C to safely close the server.\n");
+
     memset(&sender_sock_addr, 0, sizeof(struct sockaddr_in));
-    while(1) {
+    while(keep_running) {
         sender_sock_addr_size = sizeof(struct sockaddr_in);
         ssize_t n_bytes = recvfrom(sock, &recv_buf, sizeof(AuthMessage), 0,
                         (struct sockaddr*)&sender_sock_addr, &sender_sock_addr_size);
         
-        if(n_bytes < 1)
+        if(n_bytes < 0)
         {
             printf("An error ocurred receiving data\n");
             return_code = -1;
+            break;
+        }
+        else if(n_bytes == 0)
+        {
+            //Socket was shutdown
+            return_code = 0;
             break;
         }
 

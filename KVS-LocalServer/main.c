@@ -42,13 +42,16 @@ void free_client_list_item_list(void* ptr);
 
 int main(void)
 {
+    //Init groups table and mutex
     groups_table = table_create(free_value_hashtable);
-    clients_with_callback_by_key = table_create(free_client_list_item_list);
+    pthread_mutex_init(&groups_table_mtx, NULL);
 
+    //Init clients list and mutex
     clients.client_list = NULL;
-
-    pthread_mutex_init(&clients.mtx_client_list, NULL);    
-    pthread_mutex_init(&clients_with_callback_by_key_mtx, NULL);    
+    pthread_mutex_init(&clients.mtx_client_list, NULL);
+    
+    clients_with_callback_by_key = table_create(free_client_list_item_list);
+    pthread_mutex_init(&clients_with_callback_by_key_mtx, NULL);
 
     if (auth_create_socket("127.0.0.1", 25565) != 1)
     {
@@ -136,64 +139,39 @@ void *thread_client_routine(void *in)
             //Received message successfully
             printf("Received msg %d, %s, %s\n", msg.messageID, msg.firstArg, msg.secondArg);
 
+            //Register the appropriate receive function for this messageID
+            int (*receive_function)(Client*, Message*) = NULL;
             if (msg.messageID == MSG_PUT)
-            {
-                if (msg_received_put(client, &msg) == -1)
-                {
-                    // Error, disconnect client
-                    printf("Error receiving message from client. Disconnecting client\n");
-                    client->stay_connected = 0;
-                }
-            }
+                receive_function = msg_received_put;
             else if (msg.messageID == MSG_GET)
-            {
-                if (msg_received_get(client, &msg) == -1)
-                {
-                    // Error, disconnect client
-                    printf("Error receiving message from client. Disconnecting client\n");
-                    client->stay_connected = 0;
-                }
-            }
+                receive_function = msg_received_get;
             else if (msg.messageID == MSG_DELETE)
-            {
-                if (msg_received_delete(client, &msg) == -1)
-                {
-                    // Error, disconnect client
-                    printf("Error receiving message from client. Disconnecting client\n");
-                    client->stay_connected = 0;
-                }
-            }
+                receive_function = msg_received_delete;
             else if (msg.messageID == MSG_REGISTER_CALLBACK)
-            {
-                if (msg_received_register_callback(client, &msg) == -1)
-                {
-                    // Error, disconnect client
-                    printf("Error receiving message from client. Disconnecting client\n");
-                    client->stay_connected = 0;
-                }
-            }
+                receive_function = msg_received_register_callback;
             else if (msg.messageID == MSG_DISCONNECT)
             {
                 //The client informed the server it is disconnecting.
                 printf("Client has disconnected\n");
                 client->stay_connected = 0;
             }
-
-            /*if(msg.messageID < 0 || msg.messageID > MAX_HANDLING_FUNCTION_ID || message_handling_functions[msg.messageID] == NULL)
-            {
-                printf("Cant find message handling function for msg id: %d", msg.messageID);
-            }
             else
             {
-                //Call the function to handle the message
-                int ret = message_handling_functions[msg.messageID](client, &msg);
-                if(ret == -1)
-                {
-                    // Error, disconnect client
-                    printf("Error receiving message from client. Disconnecting client\n");
-                    client->stay_connected = 0;
-                }
-            }*/
+                printf("Cant find message handling function for msg id: %d\n", msg.messageID);
+            }
+
+            int status = 0;
+
+            //Run the receive function appropriate for this messageID
+            if (receive_function != NULL)
+                status = receive_function(client, &msg);
+
+            if(status == -1)
+            {
+                // Error, disconnect client
+                printf("Error receiving message from client. Disconnecting client\n");
+                client->stay_connected = 0;
+            }            
         }
         else if (recv_status == 0)
         {

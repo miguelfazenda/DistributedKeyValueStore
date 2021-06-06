@@ -51,8 +51,13 @@ void run_ui(void)
             // Read group ID
             printf("Insert group ID to delete: \n");
             read_terminal(group_id);
-
+            
+            //Delete table from groups table
+            pthread_mutex_lock(&groups_table_mtx);
             table_delete(&groups_table, group_id);
+            pthread_mutex_unlock(&groups_table_mtx);
+
+            //Delete group in auth server
             auth_delete_group(group_id);
         }
         else if (strcmp(operation, "group") == 0)
@@ -67,8 +72,10 @@ void run_ui(void)
             int8_t status = auth_get_secret(group_id, group_secret);
             if (status == 1)
             {
+                pthread_mutex_lock(&groups_table_mtx);
                 HashTable* table_of_group = (HashTable*)table_get(&groups_table, group_id);
                 int num_pairs = table_of_group == NULL ? 0 : table_count_pairs(table_of_group);
+                pthread_mutex_unlock(&groups_table_mtx);
 
                 printf("Secret: %s\nNumbers of pairs key/value:%d\n", group_secret, num_pairs);
             }

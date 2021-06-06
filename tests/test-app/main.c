@@ -129,7 +129,7 @@ void f1(char *changed_key)
 
 void insert_m(void)
 {
-    char first_arg[100], second_arg[100], error[100];
+    char first_arg[100], second_arg[5000], error[100];
     int out;
 
     printf("Enter key: ");

@@ -169,9 +169,8 @@ int get_value(char *key, char **value)
 
     if (msg.messageID == MSG_OKAY)
     {
-        printf("Value retrieved: %s\n", msg.secondArg);
-        *value = (char *)malloc(sizeof(msg.secondArg));
-        strcpy(*value, msg.secondArg);
+        //printf("Value retrieved: %s\n", msg.secondArg);
+        *value = strdup(msg.secondArg);
 
         free_message(&msg);
 

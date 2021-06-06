@@ -10,8 +10,4 @@ int msg_received_get(Client *client, Message *msg);
 int msg_received_delete(Client *client, Message *msg);
 int msg_received_register_callback(Client *client, Message *msg);
 
-
-/*#define MAX_HANDLING_FUNCTION_ID 9
-int (*message_handling_functions[MAX_HANDLING_FUNCTION_ID + 1])(Client*, Message*);*/
-
 #endif

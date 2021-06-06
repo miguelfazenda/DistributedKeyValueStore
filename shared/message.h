@@ -19,13 +19,6 @@
 
 #include "error_codes.h"
 
-/*typedef struct MessageHeader_struct
-{
-    __uint8_t messageID;
-    __uint16_t firstArgSize;
-    __uint16_t secondArgSize;
-} MessageHeader;*/
-
 typedef struct Message_struct
 {
     int8_t messageID;   //registers type of information

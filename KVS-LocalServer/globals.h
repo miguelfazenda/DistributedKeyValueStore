@@ -4,7 +4,9 @@
 #include "../shared/hashtable.h"
 #include "client_list.h"
 
+pthread_mutex_t groups_table_mtx;
 HashTable groups_table;
+
 Client_List clients;
 
 //This is a table that stores a list of clients that must be warned when the key is changed.
