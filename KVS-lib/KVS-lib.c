@@ -120,8 +120,8 @@ int put_value(char *key, char *value)
     msg.firstArg = key;
     msg.secondArg = value;
 
-    printf("put_value: key: %s\n", msg.firstArg);
-    printf("put_value: value: %s\n", msg.secondArg);
+    /*printf("put_value: key: %s\n", msg.firstArg);
+    printf("put_value: value: %s\n", msg.secondArg);*/
 
     //Send message to server
     if (send_message(sock, msg) == -1)
