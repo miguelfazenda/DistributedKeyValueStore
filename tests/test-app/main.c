@@ -98,7 +98,7 @@ void read_terminal(char *word)
 
 int login_m(void)
 {
-    char first_arg[100], second_arg[100], error[100];
+    char first_arg[100], second_arg[100];
     int out = 0;
 
     printf("Enter group ID: ");
@@ -117,7 +117,7 @@ int login_m(void)
     }
     else
     {
-        printf("Error login: %s\n", get_error_code_string((int8_t)out, error));
+        printf("Error login: %s\n", get_error_code_string((int8_t)out, "error"));
         return (0);
     }
 }
@@ -129,7 +129,7 @@ void f1(char *changed_key)
 
 void insert_m(void)
 {
-    char first_arg[100], second_arg[5000], error[100];
+    char first_arg[100], second_arg[5000];
     int out;
 
     printf("Enter key: ");
@@ -144,13 +144,13 @@ void insert_m(void)
     }
     else
     {
-        printf("Error inserting value: %s\n", get_error_code_string((int8_t)out, error));
+        printf("Error inserting value: %s\n", get_error_code_string((int8_t)out, "error"));
     }
 }
 
 void get_m(void)
 {
-    char first_arg[100], error[100];
+    char first_arg[100];
     int out;
     char *value;
 
@@ -164,13 +164,13 @@ void get_m(void)
     }
     else
     {
-        printf("Error getting the value: %s\n", get_error_code_string((int8_t)out, error));
+        printf("Error getting the value: %s\n", get_error_code_string((int8_t)out, "error"));
     }
 }
 
 void delete_m(void)
 {
-    char first_arg[100], error[100];
+    char first_arg[100];
     int out;
 
     printf("Enter key: ");
@@ -182,13 +182,13 @@ void delete_m(void)
     }
     else
     {
-        printf("Error deleting the value: %s\n", get_error_code_string((int8_t)out, error));
+        printf("Error deleting the value: %s\n", get_error_code_string((int8_t)out, "error"));
     }
 }
 
 void callback_m(void)
 {
-    char first_arg[100], error[100];
+    char first_arg[100];
     int out;
 
     printf("Enter key: ");
@@ -202,7 +202,7 @@ void callback_m(void)
     }
     else
     {
-        printf("Error registering callback: %s\n", get_error_code_string((int8_t)out, error));
+        printf("Error registering callback: %s\n", get_error_code_string((int8_t)out, "error"));
     }
 }
 
