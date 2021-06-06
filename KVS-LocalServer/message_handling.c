@@ -278,10 +278,9 @@ void value_for_key_modified(char* key, char* group_id)
             //TODO nota: já tranco o clients_with_callback_by_key_mtx, portanto ACHO que mais nenhuma thread vai mexer no client->callback_sock_fd
             Message msg = { .messageID = MSG_CALLBACK, .firstArg = key, .secondArg = NULL };
             send_message(client->client->callback_sock_fd, msg);
-
-            client = client->next;
-
         }
+
+        client = client->next;
     }
 
     pthread_mutex_unlock(&clients_with_callback_by_key_mtx);

@@ -176,12 +176,20 @@ void handle_message_create_group(AuthMessage* msg, struct sockaddr_in sender_soc
     printf("groupdID: %s\n", group_id);
     printf("secret: %s\n", sent_secret);
 
-    //Removes the entry for that group if it already exists, and stores the new groupid-secret pair
-    table_delete(&secrets_table, group_id);
-    table_insert(&secrets_table, group_id, strdup(sent_secret));
+    int8_t response = 1;
+
+    if(table_get(&secrets_table, group_id) != NULL)
+    {
+        response = ERROR_AUTH_GROUP_ALREADY_EXISTS;
+    }
+    else
+    {
+        //Insert the new group-secret pair
+        table_insert(&secrets_table, group_id, strdup(sent_secret));
+    }
+
 
     //Send response
-    int8_t response = 1;
     AuthMessage resp_msg = { .messageID = response, .firstArg = {'\0'}, .secondArg = {'\0'}, .request_number = msg->request_number };
     strcpy(resp_msg.firstArg, sent_secret);
 

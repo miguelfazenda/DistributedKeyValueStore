@@ -21,7 +21,7 @@ void run_ui(void)
     {
         // Read operation from terminal
         char operation[100];
-        printf("Enter operation: \n");
+        printf("Enter operation: ");
         read_terminal(operation);
 
         if (strcmp(operation, "create") == 0)
@@ -30,7 +30,7 @@ void run_ui(void)
             char group_secret[SECRET_SIZE];
 
             // Read group ID
-            printf("Insert group ID you want to create:\n");
+            printf("Insert group ID you want to create: ");
             read_terminal(group_id);
 
             // Send command to auth server, and received a generated random secret
@@ -49,7 +49,7 @@ void run_ui(void)
             char group_id[1000];
 
             // Read group ID
-            printf("Insert group ID to delete: \n");
+            printf("Insert group ID to delete: ");
             read_terminal(group_id);
             
             //Delete table from groups table
@@ -66,7 +66,7 @@ void run_ui(void)
             char group_secret[SECRET_SIZE];
 
             // Read group ID
-            printf("Insert group ID to know information:\n");
+            printf("Insert group ID to know information: ");
             read_terminal(group_id);
 
             int8_t status = auth_get_secret(group_id, group_secret);
