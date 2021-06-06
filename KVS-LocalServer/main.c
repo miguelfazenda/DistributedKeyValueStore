@@ -20,6 +20,8 @@
 #define SERVER_ADDRESS "/tmp/server"
 #define SERVER_CALLBACK_ADDRESS "/tmp/server_callback"
 
+#define AUTH_SERVER_PORT 25565
+
 //Server thread
 pthread_t server_thread;
 //Server thread accepting callback sockets
@@ -57,10 +59,13 @@ int main(int argc, char *argv[])
 
     if(argc > 1)
     {
+        //Get the host_name from arguments
         host_name = argv[1];
     }
 
-    int8_t auth_conn_status = auth_create_socket(host_name, 25565);
+    printf("Connecting to AuthServer on %s:%d. Use \"LocalServer <AuthServerAddress>\" to connect to another address.\n", host_name, AUTH_SERVER_PORT);
+
+    int8_t auth_conn_status = auth_create_socket(host_name, AUTH_SERVER_PORT);
     if (auth_conn_status != 1)
     {
         printf("Error creating the auth connection socket: %s\n", get_error_code_string(auth_conn_status, "error"));
